@@ -32,6 +32,7 @@ namespace Shopping_Cart
             this.headerPanel = new System.Windows.Forms.Panel();
             this.panelHeaderActions = new System.Windows.Forms.Panel();
             this.lblUserName = new System.Windows.Forms.Label();
+            this.btnLogout = new System.Windows.Forms.Button();
             this.btnMyOrders = new System.Windows.Forms.Button();
             this.btnCart = new System.Windows.Forms.Button();
             this.lblCartCount = new System.Windows.Forms.Label();
@@ -135,12 +136,13 @@ namespace Shopping_Cart
             // 
             this.panelHeaderActions.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.panelHeaderActions.Controls.Add(this.lblUserName);
+            this.panelHeaderActions.Controls.Add(this.btnLogout);
             this.panelHeaderActions.Controls.Add(this.btnMyOrders);
             this.panelHeaderActions.Controls.Add(this.btnCart);
             this.panelHeaderActions.Controls.Add(this.lblCartCount);
-            this.panelHeaderActions.Location = new System.Drawing.Point(825, 12);
+            this.panelHeaderActions.Location = new System.Drawing.Point(710, 12);
             this.panelHeaderActions.Name = "panelHeaderActions";
-            this.panelHeaderActions.Size = new System.Drawing.Size(350, 46);
+            this.panelHeaderActions.Size = new System.Drawing.Size(465, 46);
             this.panelHeaderActions.TabIndex = 1;
             // 
             // lblUserName
@@ -154,6 +156,22 @@ namespace Shopping_Cart
             this.lblUserName.Text = "Hi, Guest";
             this.lblUserName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
+            // btnLogout
+            // 
+            this.btnLogout.BackColor = System.Drawing.Color.White;
+            this.btnLogout.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnLogout.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(229)))), ((int)(((byte)(231)))), ((int)(((byte)(235)))));
+            this.btnLogout.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnLogout.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.btnLogout.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(239)))), ((int)(((byte)(68)))), ((int)(((byte)(68)))));
+            this.btnLogout.Location = new System.Drawing.Point(130, 0);
+            this.btnLogout.Name = "btnLogout";
+            this.btnLogout.Size = new System.Drawing.Size(100, 46);
+            this.btnLogout.TabIndex = 4;
+            this.btnLogout.Text = "Logout";
+            this.btnLogout.UseVisualStyleBackColor = false;
+            this.btnLogout.Click += new System.EventHandler(this.btnLogout_Click);
+            // 
             // btnMyOrders
             // 
             this.btnMyOrders.BackColor = System.Drawing.Color.White;
@@ -162,7 +180,7 @@ namespace Shopping_Cart
             this.btnMyOrders.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnMyOrders.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.btnMyOrders.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(55)))), ((int)(((byte)(65)))), ((int)(((byte)(81)))));
-            this.btnMyOrders.Location = new System.Drawing.Point(130, 0);
+            this.btnMyOrders.Location = new System.Drawing.Point(245, 0);
             this.btnMyOrders.Name = "btnMyOrders";
             this.btnMyOrders.Size = new System.Drawing.Size(110, 46);
             this.btnMyOrders.TabIndex = 0;
@@ -178,7 +196,7 @@ namespace Shopping_Cart
             this.btnCart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCart.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnCart.ForeColor = System.Drawing.Color.White;
-            this.btnCart.Location = new System.Drawing.Point(250, 0);
+            this.btnCart.Location = new System.Drawing.Point(365, 0);
             this.btnCart.Name = "btnCart";
             this.btnCart.Size = new System.Drawing.Size(100, 46);
             this.btnCart.TabIndex = 1;
@@ -191,7 +209,7 @@ namespace Shopping_Cart
             this.lblCartCount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(239)))), ((int)(((byte)(68)))), ((int)(((byte)(68)))));
             this.lblCartCount.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblCartCount.ForeColor = System.Drawing.Color.White;
-            this.lblCartCount.Location = new System.Drawing.Point(340, 0);
+            this.lblCartCount.Location = new System.Drawing.Point(455, 0);
             this.lblCartCount.Name = "lblCartCount";
             this.lblCartCount.Size = new System.Drawing.Size(24, 24);
             this.lblCartCount.TabIndex = 2;
@@ -889,6 +907,7 @@ namespace Shopping_Cart
         private System.Windows.Forms.Panel panelHeaderActions;
         private System.Windows.Forms.Button btnMyOrders;
         private System.Windows.Forms.Button btnCart;
+        private System.Windows.Forms.Button btnLogout;
         private System.Windows.Forms.Label lblCartCount;
         private System.Windows.Forms.Label lblUserName;
         private System.Windows.Forms.TableLayoutPanel bodyTable;

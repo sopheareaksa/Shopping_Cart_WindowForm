@@ -9,8 +9,49 @@ namespace Shopping_Cart
 {
     public partial class Dashboard : Form
     {
-        private readonly string connectionString =
-            "Server=DESKTOP-985956K\\SQLEXPRESS;Database=Shopping_Cart;User ID=sa;Password=130506;TrustServerCertificate=True;";
+        private string GetConnectionString()
+        {
+            return "Server=DESKTOP-985956K\\SQLEXPRESS;Database=Shopping_Cart;User ID=sa;Password=130506;TrustServerCertificate=True;";
+        }
+
+        private DataTable ExecuteQuery(string query, params SqlParameter[] parameters)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    if (parameters != null && parameters.Length > 0)
+                    {
+                        cmd.Parameters.AddRange(parameters);
+                    }
+
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    return dt;
+                }
+            }
+        }
+
+        private int ExecuteNonQuery(string query, params SqlParameter[] parameters)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    if (parameters != null && parameters.Length > 0)
+                    {
+                        cmd.Parameters.AddRange(parameters);
+                    }
+
+                    return cmd.ExecuteNonQuery();
+                }
+            }
+        }
 
         public Dashboard()
         {
@@ -33,21 +74,14 @@ namespace Shopping_Cart
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
-                {
-                    conn.Open();
-                    string query = @"
-                        SELECT ProductId, ProductName, Category, Price, Discount,
-                               SpecialOffer, Image1, Image2, Image3, Image4, CreatedAt
-                        FROM Products
-                        ORDER BY ProductId DESC";
+                string query = @"
+                    SELECT ProductId, ProductName, Category, Price, Discount,
+                           SpecialOffer, Image1, Image2, Image3, Image4, CreatedAt
+                    FROM Products
+                    ORDER BY ProductId DESC";
 
-                    SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
-                    DataTable dt = new DataTable();
-                    adapter.Fill(dt);
-
-                    dataGridViewProducts.DataSource = dt;
-                }
+                DataTable dt = ExecuteQuery(query);
+                dataGridViewProducts.DataSource = dt;
             }
             catch (Exception ex)
             {
@@ -92,30 +126,26 @@ namespace Shopping_Cart
 
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
+                string query = @"
+                    INSERT INTO Products (ProductName, Category, Price, Discount, SpecialOffer,
+                                          Image1, Image2, Image3, Image4, CreatedAt)
+                    VALUES (@ProductName, @Category, @Price, @Discount, @SpecialOffer,
+                            @Image1, @Image2, @Image3, @Image4, GETDATE())";
+
+                SqlParameter[] parameters =
                 {
-                    conn.Open();
-                    string query = @"
-                        INSERT INTO Products (ProductName, Category, Price, Discount, SpecialOffer,
-                                              Image1, Image2, Image3, Image4, CreatedAt)
-                        VALUES (@ProductName, @Category, @Price, @Discount, @SpecialOffer,
-                                @Image1, @Image2, @Image3, @Image4, GETDATE())";
+                    new SqlParameter("@ProductName", txtProductName.Text.Trim()),
+                    new SqlParameter("@Category", cmbCategory.SelectedItem?.ToString() ?? ""),
+                    new SqlParameter("@Price", decimal.Parse(txtPrice.Text.Trim())),
+                    new SqlParameter("@Discount", string.IsNullOrWhiteSpace(txtDiscount.Text) ? 0 : decimal.Parse(txtDiscount.Text.Trim())),
+                    new SqlParameter("@SpecialOffer", string.IsNullOrWhiteSpace(txtSpecialOffer.Text) ? 0 : int.Parse(txtSpecialOffer.Text.Trim())),
+                    new SqlParameter("@Image1", txtImage1.Text.Trim()),
+                    new SqlParameter("@Image2", txtImage2.Text.Trim()),
+                    new SqlParameter("@Image3", txtImage3.Text.Trim()),
+                    new SqlParameter("@Image4", txtImage4.Text.Trim())
+                };
 
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@ProductName", txtProductName.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Category", cmbCategory.SelectedItem?.ToString() ?? "");
-                        cmd.Parameters.AddWithValue("@Price", decimal.Parse(txtPrice.Text.Trim()));
-                        cmd.Parameters.AddWithValue("@Discount", string.IsNullOrWhiteSpace(txtDiscount.Text) ? 0 : decimal.Parse(txtDiscount.Text.Trim()));
-                        cmd.Parameters.AddWithValue("@SpecialOffer", string.IsNullOrWhiteSpace(txtSpecialOffer.Text) ? 0 : int.Parse(txtSpecialOffer.Text.Trim()));
-                        cmd.Parameters.AddWithValue("@Image1", txtImage1.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Image2", txtImage2.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Image3", txtImage3.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Image4", txtImage4.Text.Trim());
-
-                        cmd.ExecuteNonQuery();
-                    }
-                }
+                ExecuteNonQuery(query, parameters);
 
                 MessageBox.Show("Product added successfully.", "Success",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -146,51 +176,47 @@ namespace Shopping_Cart
 
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
+                string query = @"
+                    UPDATE Products
+                    SET ProductName = @ProductName,
+                        Category = @Category,
+                        Price = @Price,
+                        Discount = @Discount,
+                        SpecialOffer = @SpecialOffer,
+                        Image1 = @Image1,
+                        Image2 = @Image2,
+                        Image3 = @Image3,
+                        Image4 = @Image4
+                    WHERE ProductId = @ProductId";
+
+                SqlParameter[] parameters =
                 {
-                    conn.Open();
-                    string query = @"
-                        UPDATE Products
-                        SET ProductName = @ProductName,
-                            Category = @Category,
-                            Price = @Price,
-                            Discount = @Discount,
-                            SpecialOffer = @SpecialOffer,
-                            Image1 = @Image1,
-                            Image2 = @Image2,
-                            Image3 = @Image3,
-                            Image4 = @Image4
-                        WHERE ProductId = @ProductId";
+                    new SqlParameter("@ProductId", int.Parse(txtProductId.Text.Trim())),
+                    new SqlParameter("@ProductName", txtProductName.Text.Trim()),
+                    new SqlParameter("@Category", cmbCategory.SelectedItem?.ToString() ?? ""),
+                    new SqlParameter("@Price", decimal.Parse(txtPrice.Text.Trim())),
+                    new SqlParameter("@Discount", string.IsNullOrWhiteSpace(txtDiscount.Text) ? 0 : decimal.Parse(txtDiscount.Text.Trim())),
+                    new SqlParameter("@SpecialOffer", string.IsNullOrWhiteSpace(txtSpecialOffer.Text) ? 0 : int.Parse(txtSpecialOffer.Text.Trim())),
+                    new SqlParameter("@Image1", txtImage1.Text.Trim()),
+                    new SqlParameter("@Image2", txtImage2.Text.Trim()),
+                    new SqlParameter("@Image3", txtImage3.Text.Trim()),
+                    new SqlParameter("@Image4", txtImage4.Text.Trim())
+                };
 
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@ProductId", int.Parse(txtProductId.Text.Trim()));
-                        cmd.Parameters.AddWithValue("@ProductName", txtProductName.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Category", cmbCategory.SelectedItem?.ToString() ?? "");
-                        cmd.Parameters.AddWithValue("@Price", decimal.Parse(txtPrice.Text.Trim()));
-                        cmd.Parameters.AddWithValue("@Discount", string.IsNullOrWhiteSpace(txtDiscount.Text) ? 0 : decimal.Parse(txtDiscount.Text.Trim()));
-                        cmd.Parameters.AddWithValue("@SpecialOffer", string.IsNullOrWhiteSpace(txtSpecialOffer.Text) ? 0 : int.Parse(txtSpecialOffer.Text.Trim()));
-                        cmd.Parameters.AddWithValue("@Image1", txtImage1.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Image2", txtImage2.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Image3", txtImage3.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Image4", txtImage4.Text.Trim());
+                int rows = ExecuteNonQuery(query, parameters);
 
-                        int rows = cmd.ExecuteNonQuery();
+                if (rows > 0)
+                {
+                    MessageBox.Show("Product updated successfully.", "Success",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                        if (rows > 0)
-                        {
-                            MessageBox.Show("Product updated successfully.", "Success",
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                            ClearInputs();
-                            LoadProducts();
-                        }
-                        else
-                        {
-                            MessageBox.Show("Product not found.", "Update",
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
-                    }
+                    ClearInputs();
+                    LoadProducts();
+                }
+                else
+                {
+                    MessageBox.Show("Product not found.", "Update",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)
@@ -222,30 +248,27 @@ namespace Shopping_Cart
 
             try
             {
-                using (SqlConnection conn = new SqlConnection(connectionString))
+                string query = "DELETE FROM Products WHERE ProductId = @ProductId";
+
+                SqlParameter[] parameters =
                 {
-                    conn.Open();
-                    string query = "DELETE FROM Products WHERE ProductId = @ProductId";
+                    new SqlParameter("@ProductId", int.Parse(txtProductId.Text.Trim()))
+                };
 
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@ProductId", int.Parse(txtProductId.Text.Trim()));
-                        int rows = cmd.ExecuteNonQuery();
+                int rows = ExecuteNonQuery(query, parameters);
 
-                        if (rows > 0)
-                        {
-                            MessageBox.Show("Product deleted successfully.", "Success",
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                if (rows > 0)
+                {
+                    MessageBox.Show("Product deleted successfully.", "Success",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                            ClearInputs();
-                            LoadProducts();
-                        }
-                        else
-                        {
-                            MessageBox.Show("Product not found.", "Delete",
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
-                    }
+                    ClearInputs();
+                    LoadProducts();
+                }
+                else
+                {
+                    MessageBox.Show("Product not found.", "Delete",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
             catch (Exception ex)

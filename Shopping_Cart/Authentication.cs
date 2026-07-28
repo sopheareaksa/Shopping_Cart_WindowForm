@@ -85,9 +85,9 @@ namespace Shopping_Cart
 
                 if (count > 0)
                 {
-                    string userName = GetUserNameByEmail(email);
-                    ShowInfo($"Welcome back, {userName}!", "Login Successful");
-                    OpenProductCatalog(userName);
+                    UserInfo user = GetUserInfoByCredentials(email, password);
+                    ShowInfo($"Welcome back, {user.UserName}!", "Login Successful");
+                    OpenProductCatalog(user);
                 }
                 else
                 {
@@ -114,6 +114,34 @@ namespace Shopping_Cart
             }
         }
 
+        private UserInfo GetUserInfoByCredentials(string email, string password)
+        {
+            using (SqlConnection conn = OpenConnection())
+            {
+                string query = "SELECT UserId, UserName, UserEmail FROM Users WHERE UserEmail = @UserEmail AND UserPassword = @UserPassword";
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@UserEmail", email);
+                    cmd.Parameters.AddWithValue("@UserPassword", password);
+
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new UserInfo
+                            {
+                                UserId = Convert.ToInt32(reader["UserId"]),
+                                UserName = reader["UserName"].ToString(),
+                                UserEmail = reader["UserEmail"].ToString()
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
         private void Register()
         {
             string name = GetName();
@@ -131,8 +159,9 @@ namespace Shopping_Cart
 
             if (InsertUser(name, email, password))
             {
+                UserInfo newUser = GetUserInfoByCredentials(email, password);
                 ShowInfo($"Welcome to ShopMart, {name}!", "Registration Successful");
-                OpenProductCatalog(name);
+                OpenProductCatalog(newUser);
             }
             else
             {
@@ -150,7 +179,41 @@ namespace Shopping_Cart
                 return false;
             }
 
+            if (!IsValidName(name))
+            {
+                ShowWarning("Name must contain only letters and spaces.", "Register");
+                return false;
+            }
+
+            if (!IsValidEmail(email))
+            {
+                ShowWarning("Email must end with @gmail.com.", "Register");
+                return false;
+            }
+
             return true;
+        }
+
+        private bool IsValidName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return false;
+
+            foreach (char c in name)
+            {
+                if (!char.IsLetter(c) && !char.IsWhiteSpace(c))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
+
+            return email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool EmailExists(string email)
@@ -235,10 +298,14 @@ namespace Shopping_Cart
                 return email;
             }
         }
-        private void OpenProductCatalog(string userName)
+        private void OpenProductCatalog(UserInfo user)
         {
+            if (user == null) return;
+
             ProductCatalog catalog = new ProductCatalog();
-            catalog.UserName = userName;
+            catalog.UserName = user.UserName;
+            catalog.UserId = user.UserId;
+            catalog.UserEmail = user.UserEmail;
             catalog.Show();
             this.Hide();
         }
@@ -258,6 +325,13 @@ namespace Shopping_Cart
         private void ShowInfo(string message, string title)
         {
             MessageBox.Show(message, title, MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        public class UserInfo
+        {
+            public int UserId { get; set; }
+            public string UserName { get; set; }
+            public string UserEmail { get; set; }
         }
 
         private void ShowWarning(string message, string title)
