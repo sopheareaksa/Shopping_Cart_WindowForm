@@ -35,6 +35,14 @@ namespace Shopping_Cart
         private Button btnContinueShopping;
         private Button btnCheckout;
 
+        private Panel panelPaymentPage;
+        private TextBox txtCardName;
+        private TextBox txtCardNumber;
+        private TextBox txtCardExpiry;
+        private TextBox txtCardCvv;
+        private Label lblPaymentOrderTotal;
+        private int pendingOrderId;
+
         public string UserName { get; set; }
         public int UserId { get; set; }
         public string UserEmail { get; set; }
@@ -44,6 +52,7 @@ namespace Shopping_Cart
             InitializeComponent();
             BuildProductDetailPanel();
             BuildCartPanel();
+            BuildPaymentPanel();
         }
 
         private void ProductCatalog_Load(object sender, EventArgs e)
@@ -614,12 +623,6 @@ namespace Shopping_Cart
                 });
             }
 
-            MessageBox.Show(
-                $"{quantity} x {currentDetailProduct.ProductName} has been added to your cart.",
-                "Added to Cart",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-
             ShowCartPage();
         }
 
@@ -853,6 +856,12 @@ namespace Shopping_Cart
                 cartCount -= item.Quantity;
                 lblCartCount.Text = cartCount.ToString();
                 cartItems.Remove(item);
+
+                if (pendingOrderId > 0)
+                {
+                    RemoveOrderItem(pendingOrderId, item.ProductId);
+                }
+
                 RenderCartItems();
             };
 
@@ -991,22 +1000,26 @@ namespace Shopping_Cart
                 foreach (CartItem item in cartItems)
                     totalCost += item.Total;
 
-                int orderId = PlaceOrder(UserId, totalCost, phone, city, address);
+                int orderId;
+                if (pendingOrderId > 0 && OrderExistsAndPending(pendingOrderId))
+                {
+                    UpdatePendingOrder(pendingOrderId, totalCost);
+                    UpdateOrderItems(pendingOrderId, UserId);
+                    orderId = pendingOrderId;
+                }
+                else
+                {
+                    orderId = PlaceOrder(UserId, totalCost, phone, city, address);
+                    if (orderId > 0)
+                    {
+                        SaveOrderItems(orderId, UserId);
+                    }
+                }
 
                 if (orderId > 0)
                 {
-                    SaveOrderItems(orderId, UserId);
-
-                    MessageBox.Show(
-                        $"Order placed successfully!\nOrder ID: {orderId}\nTotal: ${totalCost:N2}",
-                        "Order Confirmed",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-
-                    cartItems.Clear();
-                    cartCount = 0;
-                    lblCartCount.Text = "0";
-                    ShowProductList();
+                    pendingOrderId = orderId;
+                    ShowPaymentPage(totalCost);
                 }
                 else
                 {
@@ -1072,6 +1085,163 @@ namespace Shopping_Cart
             }
         }
 
+        private bool OrderExistsAndPending(int orderId)
+        {
+            string query = "SELECT COUNT(*) FROM Orders WHERE OrderId = @OrderId AND OrderStatus = @OrderStatus";
+
+            SqlParameter[] parameters =
+            {
+                new SqlParameter("@OrderId", orderId),
+                new SqlParameter("@OrderStatus", "Pending")
+            };
+
+            object result = ExecuteScalar(query, parameters);
+            return result != null && Convert.ToInt32(result) > 0;
+        }
+
+        private void UpdatePendingOrder(int orderId, decimal totalCost)
+        {
+            string query = @"
+                UPDATE Orders
+                SET TotalCost = @TotalCost
+                WHERE OrderId = @OrderId AND OrderStatus = @OrderStatus";
+
+            SqlParameter[] parameters =
+            {
+                new SqlParameter("@TotalCost", totalCost),
+                new SqlParameter("@OrderId", orderId),
+                new SqlParameter("@OrderStatus", "Pending")
+            };
+
+            ExecuteNonQuery(query, parameters);
+        }
+
+        private void UpdateOrderItems(int orderId, int userId)
+        {
+            string deleteQuery = "DELETE FROM OrderItems WHERE OrderId = @OrderId";
+
+            SqlParameter[] deleteParameters =
+            {
+                new SqlParameter("@OrderId", orderId)
+            };
+
+            ExecuteNonQuery(deleteQuery, deleteParameters);
+            SaveOrderItems(orderId, userId);
+        }
+
+        private bool CompletePayment(int orderId, int userId)
+        {
+            try
+            {
+                string transactionId = "TXN" + DateTime.Now.ToString("yyyyMMddHHmmss") + orderId.ToString();
+
+                string paymentQuery = @"
+                    INSERT INTO Payments (OrderId, UserId, TransactionId, PaymentDate)
+                    VALUES (@OrderId, @UserId, @TransactionId, GETDATE())";
+
+                SqlParameter[] paymentParameters =
+                {
+                    new SqlParameter("@OrderId", orderId),
+                    new SqlParameter("@UserId", userId),
+                    new SqlParameter("@TransactionId", transactionId)
+                };
+
+                ExecuteNonQuery(paymentQuery, paymentParameters);
+
+                string updateOrderQuery = @"
+                    UPDATE Orders
+                    SET OrderStatus = @OrderStatus
+                    WHERE OrderId = @OrderId";
+
+                SqlParameter[] updateParameters =
+                {
+                    new SqlParameter("@OrderStatus", "Paid"),
+                    new SqlParameter("@OrderId", orderId)
+                };
+
+                ExecuteNonQuery(updateOrderQuery, updateParameters);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Payment error: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        private void CancelPendingOrder(int orderId)
+        {
+            try
+            {
+                string query = "DELETE FROM Orders WHERE OrderId = @OrderId AND OrderStatus = @OrderStatus";
+
+                SqlParameter[] parameters =
+                {
+                    new SqlParameter("@OrderId", orderId),
+                    new SqlParameter("@OrderStatus", "Pending")
+                };
+
+                int rows = ExecuteNonQuery(query, parameters);
+
+                if (rows > 0)
+                {
+                    MessageBox.Show(
+                        "Pending order has been cancelled.",
+                        "Order Cancelled",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+
+                if (pendingOrderId == orderId)
+                {
+                    pendingOrderId = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error cancelling order: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void RemoveOrderItem(int orderId, int productId)
+        {
+            try
+            {
+                string deleteItemQuery = "DELETE FROM OrderItems WHERE OrderId = @OrderId AND ProductId = @ProductId";
+
+                SqlParameter[] deleteItemParameters =
+                {
+                    new SqlParameter("@OrderId", orderId),
+                    new SqlParameter("@ProductId", productId)
+                };
+
+                ExecuteNonQuery(deleteItemQuery, deleteItemParameters);
+
+                string countQuery = "SELECT COUNT(*) FROM OrderItems WHERE OrderId = @OrderId";
+
+                SqlParameter[] countParameters =
+                {
+                    new SqlParameter("@OrderId", orderId)
+                };
+
+                object result = ExecuteScalar(countQuery, countParameters);
+                int remainingItems = result == null ? 0 : Convert.ToInt32(result);
+
+                if (remainingItems == 0)
+                {
+                    CancelPendingOrder(orderId);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error removing order item: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private object ExecuteScalar(string query, params SqlParameter[] parameters)
         {
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
@@ -1087,6 +1257,279 @@ namespace Shopping_Cart
 
                     return cmd.ExecuteScalar();
                 }
+            }
+        }
+
+        private TextBox CreateModernTextBox(int width, int height)
+        {
+            TextBox textBox = new TextBox();
+            textBox.Size = new Size(width, height);
+            textBox.Font = new Font("Segoe UI", 11F);
+            textBox.BorderStyle = BorderStyle.FixedSingle;
+            textBox.BackColor = Color.White;
+            textBox.ForeColor = Color.FromArgb(31, 41, 55);
+            textBox.Padding = new Padding(10, 8, 10, 8);
+            return textBox;
+        }
+
+        private Label CreateFieldLabel(string text)
+        {
+            Label label = new Label();
+            label.Text = text;
+            label.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            label.ForeColor = Color.FromArgb(55, 65, 81);
+            label.AutoSize = true;
+            return label;
+        }
+
+        private void BuildPaymentPanel()
+        {
+            panelPaymentPage = new Panel();
+            panelPaymentPage.Dock = DockStyle.Fill;
+            panelPaymentPage.BackColor = Color.FromArgb(249, 250, 251);
+            panelPaymentPage.Padding = new Padding(20);
+            panelPaymentPage.Visible = false;
+            panelPaymentPage.AutoScroll = true;
+            contentPanel.Controls.Add(panelPaymentPage);
+            panelPaymentPage.BringToFront();
+
+            Panel centerPanel = new Panel();
+            centerPanel.Size = new Size(520, 540);
+            centerPanel.BackColor = Color.White;
+            centerPanel.Padding = new Padding(0);
+            centerPanel.Location = new Point(
+                (panelPaymentPage.Width - centerPanel.Width) / 2,
+                10);
+            centerPanel.Anchor = AnchorStyles.Top;
+            panelPaymentPage.Controls.Add(centerPanel);
+            panelPaymentPage.Resize += (s, ev) =>
+            {
+                centerPanel.Left = (panelPaymentPage.Width - centerPanel.Width) / 2;
+            };
+
+            Label lblTitle = new Label();
+            lblTitle.Text = "Secure Payment";
+            lblTitle.Font = new Font("Segoe UI", 26F, FontStyle.Bold);
+            lblTitle.ForeColor = Color.FromArgb(31, 41, 55);
+            lblTitle.AutoSize = true;
+            lblTitle.Location = new Point(35, 25);
+            centerPanel.Controls.Add(lblTitle);
+
+            Label lblSubtitle = new Label();
+            lblSubtitle.Text = "Complete your purchase with confidence";
+            lblSubtitle.Font = new Font("Segoe UI", 11F);
+            lblSubtitle.ForeColor = Color.FromArgb(107, 114, 128);
+            lblSubtitle.AutoSize = true;
+            lblSubtitle.Location = new Point(35, 65);
+            centerPanel.Controls.Add(lblSubtitle);
+
+            Panel totalPanel = new Panel();
+            totalPanel.Size = new Size(450, 70);
+            totalPanel.BackColor = Color.FromArgb(239, 246, 255);
+            totalPanel.Location = new Point(35, 105);
+            totalPanel.Padding = new Padding(0);
+            centerPanel.Controls.Add(totalPanel);
+
+            Label lblTotalText = new Label();
+            lblTotalText.Text = "Order Total";
+            lblTotalText.Font = new Font("Segoe UI", 11F);
+            lblTotalText.ForeColor = Color.FromArgb(59, 130, 246);
+            lblTotalText.Location = new Point(15, 10);
+            lblTotalText.Size = new Size(120, 24);
+            totalPanel.Controls.Add(lblTotalText);
+
+            lblPaymentOrderTotal = new Label();
+            lblPaymentOrderTotal.Text = "$0.00";
+            lblPaymentOrderTotal.Font = new Font("Segoe UI", 22F, FontStyle.Bold);
+            lblPaymentOrderTotal.ForeColor = Color.FromArgb(59, 130, 246);
+            lblPaymentOrderTotal.AutoSize = true;
+            lblPaymentOrderTotal.Location = new Point(15, 32);
+            totalPanel.Controls.Add(lblPaymentOrderTotal);
+
+            Panel formPanel = new Panel();
+            formPanel.Size = new Size(450, 220);
+            formPanel.BackColor = Color.White;
+            formPanel.Location = new Point(35, 185);
+            centerPanel.Controls.Add(formPanel);
+
+            Label lblName = CreateFieldLabel("Cardholder Name");
+            lblName.Location = new Point(0, 0);
+            formPanel.Controls.Add(lblName);
+
+            txtCardName = CreateModernTextBox(450, 36);
+            txtCardName.Location = new Point(0, 25);
+            formPanel.Controls.Add(txtCardName);
+
+            Label lblNumber = CreateFieldLabel("Card Number");
+            lblNumber.Location = new Point(0, 75);
+            formPanel.Controls.Add(lblNumber);
+
+            txtCardNumber = CreateModernTextBox(450, 36);
+            txtCardNumber.Location = new Point(0, 100);
+            txtCardNumber.MaxLength = 16;
+            formPanel.Controls.Add(txtCardNumber);
+
+            Label lblExpiry = CreateFieldLabel("Expiry Date");
+            lblExpiry.Location = new Point(0, 155);
+            formPanel.Controls.Add(lblExpiry);
+
+            txtCardExpiry = CreateModernTextBox(210, 36);
+            txtCardExpiry.Location = new Point(0, 180);
+            txtCardExpiry.MaxLength = 5;
+            txtCardExpiry.Text = "MM/YY";
+            txtCardExpiry.ForeColor = Color.FromArgb(156, 163, 175);
+            txtCardExpiry.Enter += (s, ev) =>
+            {
+                if (txtCardExpiry.Text == "MM/YY")
+                {
+                    txtCardExpiry.Text = "";
+                    txtCardExpiry.ForeColor = Color.FromArgb(31, 41, 55);
+                }
+            };
+            txtCardExpiry.Leave += (s, ev) =>
+            {
+                if (string.IsNullOrWhiteSpace(txtCardExpiry.Text))
+                {
+                    txtCardExpiry.Text = "MM/YY";
+                    txtCardExpiry.ForeColor = Color.FromArgb(156, 163, 175);
+                }
+            };
+            formPanel.Controls.Add(txtCardExpiry);
+
+            Label lblCvv = CreateFieldLabel("CVV");
+            lblCvv.Location = new Point(240, 155);
+            formPanel.Controls.Add(lblCvv);
+
+            txtCardCvv = CreateModernTextBox(210, 36);
+            txtCardCvv.Location = new Point(240, 180);
+            txtCardCvv.MaxLength = 4;
+            txtCardCvv.PasswordChar = '*';
+            formPanel.Controls.Add(txtCardCvv);
+
+            Button btnContinue = new Button();
+            btnContinue.Text = "Continue Shopping";
+            btnContinue.Size = new Size(210, 54);
+            btnContinue.FlatStyle = FlatStyle.Flat;
+            btnContinue.FlatAppearance.BorderSize = 1;
+            btnContinue.FlatAppearance.BorderColor = Color.FromArgb(229, 231, 235);
+            btnContinue.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnContinue.ForeColor = Color.FromArgb(55, 65, 81);
+            btnContinue.BackColor = Color.White;
+            btnContinue.Cursor = Cursors.Hand;
+            btnContinue.Location = new Point(35, 420);
+            btnContinue.Click += (s, ev) =>
+            {
+                ClearPaymentFields();
+                ShowProductList();
+            };
+            centerPanel.Controls.Add(btnContinue);
+
+            Button btnPay = new Button();
+            btnPay.Text = "Pay Now";
+            btnPay.Size = new Size(210, 54);
+            btnPay.FlatStyle = FlatStyle.Flat;
+            btnPay.FlatAppearance.BorderSize = 0;
+            btnPay.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            btnPay.ForeColor = Color.White;
+            btnPay.BackColor = Color.FromArgb(59, 130, 246);
+            btnPay.Cursor = Cursors.Hand;
+            btnPay.Location = new Point(275, 420);
+            btnPay.Click += btnPayNow_Click;
+            centerPanel.Controls.Add(btnPay);
+
+            Label lblSecure = new Label();
+            lblSecure.Text = "🔒 Secure 256-bit SSL Encrypted";
+            lblSecure.Font = new Font("Segoe UI", 9F);
+            lblSecure.ForeColor = Color.FromArgb(107, 114, 128);
+            lblSecure.AutoSize = true;
+            lblSecure.Location = new Point(160, 490);
+            centerPanel.Controls.Add(lblSecure);
+        }
+
+        private void ShowPaymentPage(decimal totalCost)
+        {
+            lblPaymentOrderTotal.Text = $"${totalCost:N2}";
+            ClearPaymentFields();
+
+            contentTable.Visible = false;
+            panelProductDetail.Visible = false;
+            panelCartPage.Visible = false;
+            panelPaymentPage.Visible = true;
+            panelPaymentPage.BringToFront();
+        }
+
+        private void ClearPaymentFields()
+        {
+            txtCardName.Clear();
+            txtCardNumber.Clear();
+            txtCardExpiry.Text = "MM/YY";
+            txtCardExpiry.ForeColor = Color.FromArgb(156, 163, 175);
+            txtCardCvv.Clear();
+        }
+
+        private void btnPayNow_Click(object sender, EventArgs e)
+        {
+            string name = txtCardName.Text.Trim();
+            string number = txtCardNumber.Text.Trim();
+            string expiry = txtCardExpiry.Text.Trim();
+            string cvv = txtCardCvv.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(name) ||
+                string.IsNullOrWhiteSpace(number) ||
+                string.IsNullOrWhiteSpace(expiry) ||
+                expiry == "MM/YY" ||
+                string.IsNullOrWhiteSpace(cvv))
+            {
+                MessageBox.Show(
+                    "Please fill in all payment information.",
+                    "Validation",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (number.Length < 13 || !long.TryParse(number, out _))
+            {
+                MessageBox.Show(
+                    "Please enter a valid card number (13-16 digits).",
+                    "Validation",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (pendingOrderId <= 0)
+            {
+                MessageBox.Show(
+                    "No pending order found.",
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            if (CompletePayment(pendingOrderId, UserId))
+            {
+                MessageBox.Show(
+                    "Payment completed successfully!",
+                    "Payment Confirmed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                pendingOrderId = 0;
+                ClearPaymentFields();
+                cartItems.Clear();
+                cartCount = 0;
+                lblCartCount.Text = "0";
+                ShowProductList();
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Payment failed. Your order is saved but status is Pending.",
+                    "Payment Failed",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
             }
         }
 
