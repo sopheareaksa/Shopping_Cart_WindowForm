@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Printing;
 using System.IO;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
@@ -133,6 +134,27 @@ namespace Shopping_Cart
                     }
 
                     return cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private DataTable ExecuteQuery(string query, params SqlParameter[] parameters)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    if (parameters != null && parameters.Length > 0)
+                    {
+                        cmd.Parameters.AddRange(parameters);
+                    }
+
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
+                    return dt;
                 }
             }
         }
@@ -742,7 +764,9 @@ namespace Shopping_Cart
         {
             panelCartPage.Visible = false;
             panelProductDetail.Visible = false;
+            panelPaymentPage.Visible = false;
             contentTable.Visible = true;
+            contentTable.BringToFront();
         }
 
         private void ShowCartPage()
@@ -1282,6 +1306,42 @@ namespace Shopping_Cart
             return label;
         }
 
+        private DataRow GetOrderDetails(int orderId)
+        {
+            string query = @"
+                SELECT OrderId, TotalCost, OrderStatus, UserPhone, UserCity, UserAddress, OrderDate
+                FROM Orders
+                WHERE OrderId = @OrderId";
+
+            DataTable dt = ExecuteQuery(query, new SqlParameter("@OrderId", orderId));
+            return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+        }
+
+        private DataTable GetOrderItems(int orderId)
+        {
+            string query = @"
+                SELECT ProductName, ProductPrice, Quantity,
+                       ProductPrice * Quantity AS LineTotal
+                FROM OrderItems
+                WHERE OrderId = @OrderId";
+
+            return ExecuteQuery(query, new SqlParameter("@OrderId", orderId));
+        }
+
+        private DataRow GetUserDetails(int userId)
+        {
+            string query = "SELECT UserName, UserEmail FROM Users WHERE UserId = @UserId";
+            DataTable dt = ExecuteQuery(query, new SqlParameter("@UserId", userId));
+            return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+        }
+
+        private DataRow GetPaymentDetails(int orderId)
+        {
+            string query = "SELECT TransactionId, PaymentDate FROM Payments WHERE OrderId = @OrderId";
+            DataTable dt = ExecuteQuery(query, new SqlParameter("@OrderId", orderId));
+            return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+        }
+
         private void BuildPaymentPanel()
         {
             panelPaymentPage = new Panel();
@@ -1467,6 +1527,431 @@ namespace Shopping_Cart
             txtCardCvv.Clear();
         }
 
+private Panel invoicePrintPanel;
+
+        private void ShowInvoice(int orderId)
+        {
+            DataRow order = GetOrderDetails(orderId);
+            DataTable items = GetOrderItems(orderId);
+            DataRow user = GetUserDetails(UserId);
+            DataRow payment = GetPaymentDetails(orderId);
+
+            if (order == null) return;
+
+            string customerName = user?["UserName"]?.ToString() ?? UserName ?? "Customer";
+            string customerEmail = user?["UserEmail"]?.ToString() ?? UserEmail ?? "";
+            string transactionId = payment?["TransactionId"]?.ToString() ?? "N/A";
+            DateTime orderDate = order["OrderDate"] == DBNull.Value ? DateTime.Now : Convert.ToDateTime(order["OrderDate"]);
+            DateTime paymentDate = payment?["PaymentDate"] == null || payment["PaymentDate"] == DBNull.Value
+                ? DateTime.Now
+                : Convert.ToDateTime(payment["PaymentDate"]);
+            decimal totalCost = order["TotalCost"] == DBNull.Value ? 0 : Convert.ToDecimal(order["TotalCost"]);
+
+            Form invoiceForm = new Form();
+            invoiceForm.Text = "Invoice / Receipt";
+            invoiceForm.Size = new Size(620, 820);
+            invoiceForm.StartPosition = FormStartPosition.CenterParent;
+            invoiceForm.FormBorderStyle = FormBorderStyle.Sizable;
+            invoiceForm.MaximizeBox = true;
+            invoiceForm.MinimizeBox = true;
+            invoiceForm.BackColor = Color.FromArgb(249, 250, 251);
+
+            Panel scrollPanel = new Panel();
+            scrollPanel.Dock = DockStyle.Fill;
+            scrollPanel.BackColor = Color.FromArgb(249, 250, 251);
+            scrollPanel.AutoScroll = true;
+            scrollPanel.Padding = new Padding(20);
+            invoiceForm.Controls.Add(scrollPanel);
+
+            invoicePrintPanel = new Panel();
+            invoicePrintPanel.BackColor = Color.White;
+            invoicePrintPanel.Width = 560;
+            invoicePrintPanel.Location = new Point(20, 20);
+            invoicePrintPanel.Padding = new Padding(40);
+            scrollPanel.Controls.Add(invoicePrintPanel);
+
+            int y = 0;
+            int width = invoicePrintPanel.Width - 80;
+
+            // Store header
+            Label lblStoreName = new Label();
+            lblStoreName.Text = "ShopMart";
+            lblStoreName.Font = new Font("Segoe UI", 26F, FontStyle.Bold);
+            lblStoreName.ForeColor = Color.FromArgb(31, 41, 55);
+            lblStoreName.AutoSize = true;
+            lblStoreName.Location = new Point(0, y);
+            invoicePrintPanel.Controls.Add(lblStoreName);
+
+            Label lblStoreTagline = new Label();
+            lblStoreTagline.Text = "Your favorite online shopping destination";
+            lblStoreTagline.Font = new Font("Segoe UI", 9F);
+            lblStoreTagline.ForeColor = Color.FromArgb(107, 114, 128);
+            lblStoreTagline.AutoSize = true;
+            lblStoreTagline.Location = new Point(0, y + 42);
+            invoicePrintPanel.Controls.Add(lblStoreTagline);
+
+            Label lblInvoiceTitle = new Label();
+            lblInvoiceTitle.Text = "INVOICE";
+            lblInvoiceTitle.Font = new Font("Segoe UI", 20F, FontStyle.Bold);
+            lblInvoiceTitle.ForeColor = Color.FromArgb(59, 130, 246);
+            lblInvoiceTitle.AutoSize = true;
+            lblInvoiceTitle.Location = new Point(width - lblInvoiceTitle.PreferredWidth, y);
+            invoicePrintPanel.Controls.Add(lblInvoiceTitle);
+
+            y += 90;
+
+            // Top info bar
+            Panel topInfoPanel = new Panel();
+            topInfoPanel.Width = width;
+            topInfoPanel.Height = 70;
+            topInfoPanel.Location = new Point(0, y);
+            topInfoPanel.BackColor = Color.FromArgb(248, 250, 252);
+            topInfoPanel.BorderStyle = BorderStyle.FixedSingle;
+            invoicePrintPanel.Controls.Add(topInfoPanel);
+
+            AddInvoiceInfoBlock(topInfoPanel, "Invoice #:", $"INV-{orderId}", 15, 10);
+            AddInvoiceInfoBlock(topInfoPanel, "Invoice Date:", paymentDate.ToString("MMM dd, yyyy"), 200, 10);
+            AddInvoiceInfoBlock(topInfoPanel, "Order Date:", orderDate.ToString("MMM dd, yyyy"), 385, 10);
+
+            y += 90;
+
+            // Bill to section
+            Panel billToPanel = new Panel();
+            billToPanel.Width = width / 2 - 10;
+            billToPanel.Height = 120;
+            billToPanel.Location = new Point(0, y);
+            billToPanel.BackColor = Color.White;
+            billToPanel.BorderStyle = BorderStyle.FixedSingle;
+            invoicePrintPanel.Controls.Add(billToPanel);
+
+            Label lblBillToTitle = new Label();
+            lblBillToTitle.Text = "BILL TO";
+            lblBillToTitle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblBillToTitle.ForeColor = Color.FromArgb(59, 130, 246);
+            lblBillToTitle.AutoSize = true;
+            lblBillToTitle.Location = new Point(12, 10);
+            billToPanel.Controls.Add(lblBillToTitle);
+
+            AddInvoiceDetailLine(billToPanel, customerName, 12, 35, FontStyle.Bold);
+            AddInvoiceDetailLine(billToPanel, customerEmail, 12, 58);
+            AddInvoiceDetailLine(billToPanel, order["UserPhone"]?.ToString() ?? "", 12, 81);
+
+            // Ship to section
+            Panel shipToPanel = new Panel();
+            shipToPanel.Width = width / 2 - 10;
+            shipToPanel.Height = 120;
+            shipToPanel.Location = new Point(width / 2 + 10, y);
+            shipToPanel.BackColor = Color.White;
+            shipToPanel.BorderStyle = BorderStyle.FixedSingle;
+            invoicePrintPanel.Controls.Add(shipToPanel);
+
+            Label lblShipToTitle = new Label();
+            lblShipToTitle.Text = "SHIP TO";
+            lblShipToTitle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblShipToTitle.ForeColor = Color.FromArgb(59, 130, 246);
+            lblShipToTitle.AutoSize = true;
+            lblShipToTitle.Location = new Point(12, 10);
+            shipToPanel.Controls.Add(lblShipToTitle);
+
+            AddInvoiceDetailLine(shipToPanel, order["UserAddress"]?.ToString() ?? "", 12, 35);
+            AddInvoiceDetailLine(shipToPanel, order["UserCity"]?.ToString() ?? "", 12, 58);
+
+            y += 140;
+
+            // Items table header
+            Panel tableHeader = CreateInvoiceTableHeader(width);
+            tableHeader.Location = new Point(0, y);
+            invoicePrintPanel.Controls.Add(tableHeader);
+            y += tableHeader.Height;
+
+            decimal subtotal = 0;
+            foreach (DataRow row in items.Rows)
+            {
+                string productName = row["ProductName"].ToString();
+                decimal price = row["ProductPrice"] == DBNull.Value ? 0 : Convert.ToDecimal(row["ProductPrice"]);
+                int qty = row["Quantity"] == DBNull.Value ? 0 : Convert.ToInt32(row["Quantity"]);
+                decimal lineTotal = row["LineTotal"] == DBNull.Value ? 0 : Convert.ToDecimal(row["LineTotal"]);
+                subtotal += lineTotal;
+
+                Panel itemRow = CreateInvoiceTableRow(productName, price, qty, lineTotal, width);
+                itemRow.Location = new Point(0, y);
+                invoicePrintPanel.Controls.Add(itemRow);
+                y += itemRow.Height;
+            }
+
+            // Totals section
+            y += 20;
+            Panel totalsBox = new Panel();
+            totalsBox.Width = 240;
+            totalsBox.Height = 100;
+            totalsBox.Location = new Point(width - 240, y);
+            totalsBox.BackColor = Color.White;
+            totalsBox.BorderStyle = BorderStyle.FixedSingle;
+            invoicePrintPanel.Controls.Add(totalsBox);
+
+            AddInvoiceTotalLine(totalsBox, "Subtotal", subtotal, 10, false);
+            AddInvoiceTotalLine(totalsBox, "Tax", 0m, 32, false);
+            AddInvoiceTotalLine(totalsBox, "Discount", 0m, 54, false);
+            AddInvoiceTotalLine(totalsBox, "Total", totalCost, 76, true);
+
+            y += 120;
+
+            // Payment info
+            Panel paymentInfoPanel = new Panel();
+            paymentInfoPanel.Width = width - 260;
+            paymentInfoPanel.Height = 90;
+            paymentInfoPanel.Location = new Point(0, y);
+            paymentInfoPanel.BackColor = Color.FromArgb(239, 246, 255);
+            paymentInfoPanel.Padding = new Padding(12);
+            invoicePrintPanel.Controls.Add(paymentInfoPanel);
+
+            Label lblPaymentTitle = new Label();
+            lblPaymentTitle.Text = "Payment Information";
+            lblPaymentTitle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblPaymentTitle.ForeColor = Color.FromArgb(59, 130, 246);
+            lblPaymentTitle.AutoSize = true;
+            lblPaymentTitle.Location = new Point(12, 12);
+            paymentInfoPanel.Controls.Add(lblPaymentTitle);
+
+            AddInvoiceDetailLine(paymentInfoPanel, $"Transaction ID: {transactionId}", 12, 38);
+            AddInvoiceDetailLine(paymentInfoPanel, "Payment Method: Credit Card", 12, 61);
+
+            y += 110;
+
+            // Footer notes
+            Label lblNotesTitle = new Label();
+            lblNotesTitle.Text = "Notes";
+            lblNotesTitle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblNotesTitle.ForeColor = Color.FromArgb(31, 41, 55);
+            lblNotesTitle.AutoSize = true;
+            lblNotesTitle.Location = new Point(0, y);
+            invoicePrintPanel.Controls.Add(lblNotesTitle);
+            y += 25;
+
+            Label lblNotes = new Label();
+            lblNotes.Text = "Thank you for shopping with us. If you have any questions about this invoice, please contact our support team.";
+            lblNotes.Font = new Font("Segoe UI", 9F);
+            lblNotes.ForeColor = Color.FromArgb(107, 114, 128);
+            lblNotes.AutoSize = true;
+            lblNotes.Location = new Point(0, y);
+            lblNotes.MaximumSize = new Size(width, 0);
+            invoicePrintPanel.Controls.Add(lblNotes);
+
+            y += lblNotes.PreferredHeight + 30;
+            invoicePrintPanel.Height = y + 60;
+
+            // Footer buttons
+            Panel footerPanel = new Panel();
+            footerPanel.Dock = DockStyle.Bottom;
+            footerPanel.Height = 70;
+            footerPanel.BackColor = Color.White;
+            footerPanel.BorderStyle = BorderStyle.FixedSingle;
+            invoiceForm.Controls.Add(footerPanel);
+
+            Button btnPrint = new Button();
+            btnPrint.Text = "🖨️ Print Invoice";
+            btnPrint.Size = new Size(180, 45);
+            btnPrint.FlatStyle = FlatStyle.Flat;
+            btnPrint.FlatAppearance.BorderSize = 0;
+            btnPrint.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnPrint.ForeColor = Color.White;
+            btnPrint.BackColor = Color.FromArgb(16, 185, 129);
+            btnPrint.Cursor = Cursors.Hand;
+            btnPrint.Location = new Point(30, 12);
+            btnPrint.Click += (s, ev) => PrintInvoice();
+            footerPanel.Controls.Add(btnPrint);
+
+            Button btnContinue = new Button();
+            btnContinue.Text = "Continue Shopping";
+            btnContinue.Size = new Size(330, 45);
+            btnContinue.FlatStyle = FlatStyle.Flat;
+            btnContinue.FlatAppearance.BorderSize = 0;
+            btnContinue.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            btnContinue.ForeColor = Color.White;
+            btnContinue.BackColor = Color.FromArgb(59, 130, 246);
+            btnContinue.Cursor = Cursors.Hand;
+            btnContinue.Location = new Point(230, 12);
+            btnContinue.DialogResult = DialogResult.OK;
+            footerPanel.Controls.Add(btnContinue);
+
+            invoiceForm.AcceptButton = btnContinue;
+            invoiceForm.ShowDialog(this);
+        }
+
+        private void AddInvoiceInfoBlock(Panel parent, string label, string value, int x, int y)
+        {
+            Label lblLabel = new Label();
+            lblLabel.Text = label;
+            lblLabel.Font = new Font("Segoe UI", 8F);
+            lblLabel.ForeColor = Color.FromArgb(107, 114, 128);
+            lblLabel.AutoSize = true;
+            lblLabel.Location = new Point(x, y);
+            parent.Controls.Add(lblLabel);
+
+            Label lblValue = new Label();
+            lblValue.Text = value;
+            lblValue.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblValue.ForeColor = Color.FromArgb(31, 41, 55);
+            lblValue.AutoSize = true;
+            lblValue.Location = new Point(x, y + 18);
+            parent.Controls.Add(lblValue);
+        }
+
+        private void AddInvoiceDetailLine(Panel parent, string text, int x, int y, FontStyle style = FontStyle.Regular)
+        {
+            Label label = new Label();
+            label.Text = text;
+            label.Font = new Font("Segoe UI", 9F, style);
+            label.ForeColor = Color.FromArgb(55, 65, 81);
+            label.AutoSize = true;
+            label.Location = new Point(x, y);
+            label.MaximumSize = new Size(parent.Width - 24, 0);
+            parent.Controls.Add(label);
+        }
+
+        private Panel CreateInvoiceTableHeader(int width)
+        {
+            Panel panel = new Panel();
+            panel.Height = 36;
+            panel.Width = width;
+            panel.BackColor = Color.FromArgb(59, 130, 246);
+
+            Label lblItem = new Label();
+            lblItem.Text = "Item Description";
+            lblItem.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblItem.ForeColor = Color.White;
+            lblItem.AutoSize = true;
+            lblItem.Location = new Point(12, 8);
+            panel.Controls.Add(lblItem);
+
+            Label lblPrice = new Label();
+            lblPrice.Text = "Price";
+            lblPrice.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblPrice.ForeColor = Color.White;
+            lblPrice.AutoSize = true;
+            lblPrice.Location = new Point(width - 260, 8);
+            panel.Controls.Add(lblPrice);
+
+            Label lblQty = new Label();
+            lblQty.Text = "Qty";
+            lblQty.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblQty.ForeColor = Color.White;
+            lblQty.AutoSize = true;
+            lblQty.Location = new Point(width - 170, 8);
+            panel.Controls.Add(lblQty);
+
+            Label lblTotal = new Label();
+            lblTotal.Text = "Amount";
+            lblTotal.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotal.ForeColor = Color.White;
+            lblTotal.AutoSize = true;
+            lblTotal.Location = new Point(width - 90, 8);
+            panel.Controls.Add(lblTotal);
+
+            return panel;
+        }
+
+        private Panel CreateInvoiceTableRow(string productName, decimal price, int qty, decimal lineTotal, int width)
+        {
+            Panel panel = new Panel();
+            panel.Height = 36;
+            panel.Width = width;
+            panel.BackColor = Color.White;
+            panel.BorderStyle = BorderStyle.FixedSingle;
+
+            Label lblName = new Label();
+            lblName.Text = productName;
+            lblName.Font = new Font("Segoe UI", 9F);
+            lblName.ForeColor = Color.FromArgb(31, 41, 55);
+            lblName.AutoSize = true;
+            lblName.Location = new Point(12, 8);
+            lblName.MaximumSize = new Size(width - 300, 0);
+            panel.Controls.Add(lblName);
+
+            Label lblPrice = new Label();
+            lblPrice.Text = $"${price:N2}";
+            lblPrice.Font = new Font("Segoe UI", 9F);
+            lblPrice.ForeColor = Color.FromArgb(75, 85, 99);
+            lblPrice.AutoSize = true;
+            lblPrice.Location = new Point(width - 260, 8);
+            panel.Controls.Add(lblPrice);
+
+            Label lblQty = new Label();
+            lblQty.Text = qty.ToString();
+            lblQty.Font = new Font("Segoe UI", 9F);
+            lblQty.ForeColor = Color.FromArgb(75, 85, 99);
+            lblQty.AutoSize = true;
+            lblQty.Location = new Point(width - 160, 8);
+            panel.Controls.Add(lblQty);
+
+            Label lblTotal = new Label();
+            lblTotal.Text = $"${lineTotal:N2}";
+            lblTotal.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblTotal.ForeColor = Color.FromArgb(31, 41, 55);
+            lblTotal.AutoSize = true;
+            lblTotal.Location = new Point(width - 90, 8);
+            panel.Controls.Add(lblTotal);
+
+            return panel;
+        }
+
+        private void AddInvoiceTotalLine(Panel parent, string label, decimal value, int y, bool isBold)
+        {
+            Label lblLabel = new Label();
+            lblLabel.Text = label;
+            lblLabel.Font = new Font("Segoe UI", isBold ? 11F : 9F, isBold ? FontStyle.Bold : FontStyle.Regular);
+            lblLabel.ForeColor = isBold ? Color.FromArgb(31, 41, 55) : Color.FromArgb(107, 114, 128);
+            lblLabel.AutoSize = true;
+            lblLabel.Location = new Point(12, y);
+            parent.Controls.Add(lblLabel);
+
+            Label lblValue = new Label();
+            lblValue.Text = $"${value:N2}";
+            lblValue.Font = new Font("Segoe UI", isBold ? 11F : 9F, isBold ? FontStyle.Bold : FontStyle.Regular);
+            lblValue.ForeColor = isBold ? Color.FromArgb(59, 130, 246) : Color.FromArgb(31, 41, 55);
+            lblValue.AutoSize = true;
+            lblValue.Location = new Point(170, y);
+            lblValue.TextAlign = ContentAlignment.MiddleRight;
+            parent.Controls.Add(lblValue);
+        }
+
+        private void PrintInvoice()
+        {
+            if (invoicePrintPanel == null) return;
+
+            PrintDocument printDocument = new PrintDocument();
+            printDocument.PrintPage += (s, ev) =>
+            {
+                ev.Graphics.PageUnit = GraphicsUnit.Pixel;
+                ev.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                // Margins
+                int marginX = ev.MarginBounds.Left;
+                int marginY = ev.MarginBounds.Top;
+                int pageWidth = ev.MarginBounds.Width;
+
+                // Scale to fit page width while preserving aspect ratio
+                float scale = Math.Min(1f, (float)pageWidth / invoicePrintPanel.Width);
+                int panelHeight = (int)(invoicePrintPanel.Height * scale);
+
+                using (Bitmap bitmap = new Bitmap(invoicePrintPanel.Width, invoicePrintPanel.Height))
+                {
+                    invoicePrintPanel.DrawToBitmap(bitmap, new Rectangle(0, 0, invoicePrintPanel.Width, invoicePrintPanel.Height));
+                    ev.Graphics.DrawImage(bitmap, marginX, marginY, (int)(invoicePrintPanel.Width * scale), panelHeight);
+                }
+
+                ev.HasMorePages = false;
+            };
+
+            PrintDialog printDialog = new PrintDialog();
+            printDialog.Document = printDocument;
+
+            if (printDialog.ShowDialog() == DialogResult.OK)
+            {
+                printDocument.Print();
+            }
+        }
+
         private void btnPayNow_Click(object sender, EventArgs e)
         {
             string name = txtCardName.Text.Trim();
@@ -1510,11 +1995,9 @@ namespace Shopping_Cart
 
             if (CompletePayment(pendingOrderId, UserId))
             {
-                MessageBox.Show(
-                    "Payment completed successfully!",
-                    "Payment Confirmed",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                int paidOrderId = pendingOrderId;
+
+                ShowInvoice(paidOrderId);
 
                 pendingOrderId = 0;
                 ClearPaymentFields();
