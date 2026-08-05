@@ -9,6 +9,17 @@ namespace Shopping_Cart
 {
     public partial class Dashboard : Form
     {
+        // flag to indicate whether the grid is showing orders
+        private bool isOrdersView = false;
+        // flag to indicate whether the grid is showing customers
+        private bool isCustomersView = false;
+
+        // order details panel and controls (created on demand)
+        private Panel orderDetailsPanel;
+        private DataGridView dataGridViewOrderItems;
+        private Label lblOrderMeta;
+        private Button btnCloseOrderDetails;
+
         private string GetConnectionString()
         {
             return "Server=DESKTOP-985956K\\SQLEXPRESS;Database=Shopping_Cart;User ID=sa;Password=130506;TrustServerCertificate=True;";
@@ -65,6 +76,13 @@ namespace Shopping_Cart
             // Wire up auto-calculation events
             txtPrice.TextChanged += (s, ev) => CalculateFinalPrice();
             txtSpecialOffer.TextChanged += (s, ev) => CalculateFinalPrice();
+            // Wire orders and customers navigation
+            btnNavOrders.Click += (s, ev) => BtnNavOrders_Click(s, ev);
+            btnNavCustomers.Click += (s, ev) => BtnNavCustomers_Click(s, ev);
+            btnNavDashboard.Click += (s, ev) => BtnNavDashboard_Click(s, ev);
+
+            // default active nav
+            SetActiveNavButton(btnNavDashboard);
         }
 
         // ======================
@@ -82,11 +100,57 @@ namespace Shopping_Cart
 
                 DataTable dt = ExecuteQuery(query);
                 dataGridViewProducts.DataSource = dt;
+                // update summary cards whenever products are (re)loaded
+                LoadSummary();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error loading products: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ======================
+        // Load summary cards: Total Sales, Total Orders, Products, Customers
+        // ======================
+        private void LoadSummary()
+        {
+            try
+            {
+                // Total Sales (sum of TotalCost in Orders)
+                DataTable dtSales = ExecuteQuery("SELECT ISNULL(SUM(TotalCost), 0) AS TotalSales FROM Orders");
+                decimal totalSales = 0;
+                if (dtSales != null && dtSales.Rows.Count > 0 && dtSales.Rows[0]["TotalSales"] != DBNull.Value)
+                    totalSales = Convert.ToDecimal(dtSales.Rows[0]["TotalSales"]);
+
+                // Total Orders
+                DataTable dtOrders = ExecuteQuery("SELECT COUNT(*) AS TotalOrders FROM Orders");
+                int totalOrders = 0;
+                if (dtOrders != null && dtOrders.Rows.Count > 0)
+                    totalOrders = Convert.ToInt32(dtOrders.Rows[0][0]);
+
+                // Total Products
+                DataTable dtProducts = ExecuteQuery("SELECT COUNT(*) AS TotalProducts FROM Products");
+                int totalProducts = 0;
+                if (dtProducts != null && dtProducts.Rows.Count > 0)
+                    totalProducts = Convert.ToInt32(dtProducts.Rows[0][0]);
+
+                // Total Customers (Users table)
+                DataTable dtCustomers = ExecuteQuery("SELECT COUNT(*) AS TotalCustomers FROM Users");
+                int totalCustomers = 0;
+                if (dtCustomers != null && dtCustomers.Rows.Count > 0)
+                    totalCustomers = Convert.ToInt32(dtCustomers.Rows[0][0]);
+
+                // Set label texts (format numbers)
+                lblSalesValue.Text = totalSales.ToString("C0");
+                lblOrdersValue.Text = totalOrders.ToString("N0");
+                lblProductsValue.Text = totalProducts.ToString("N0");
+                lblCustomersValue.Text = totalCustomers.ToString("N0");
+            }
+            catch (Exception ex)
+            {
+                // don't crash the UI if summary fails
+                Console.WriteLine("Failed to load summary: " + ex.Message);
             }
         }
 
@@ -335,6 +399,27 @@ namespace Shopping_Cart
 
             DataGridViewRow row = dataGridViewProducts.Rows[e.RowIndex];
 
+            if (isOrdersView)
+            {
+                // show order details when orders view is active
+                if (row.Cells["OrderId"]?.Value != null && int.TryParse(row.Cells["OrderId"].Value.ToString(), out int orderId))
+                {
+                    ShowOrderDetails(orderId);
+                }
+
+                return;
+            }
+
+            if (isCustomersView)
+            {
+                if (row.Cells["UserId"]?.Value != null && int.TryParse(row.Cells["UserId"].Value.ToString(), out int userId))
+                {
+                    ShowCustomerOrders(userId);
+                }
+
+                return;
+            }
+
             txtProductId.Text = row.Cells["ProductId"].Value?.ToString();
             txtProductName.Text = row.Cells["ProductName"].Value?.ToString();
             cmbCategory.SelectedItem = row.Cells["Category"].Value?.ToString();
@@ -406,9 +491,239 @@ namespace Shopping_Cart
 
         private void btnNavProducts_Click(object sender, EventArgs e)
         {
+            SetActiveNavButton(btnNavProducts);
             ProductCatalog catalogForm = new ProductCatalog();
             catalogForm.Show();
             this.Hide();
+        }
+
+        private void SetActiveNavButton(Button active)
+        {
+            // default styles
+            Color activeBack = Color.FromArgb(239, 246, 255);
+            Color activeFore = Color.FromArgb(59, 130, 246);
+            Color defaultBack = Color.White;
+            Color defaultFore = Color.FromArgb(75, 85, 99);
+
+            Button[] navs = { btnNavDashboard, btnNavProducts, btnNavOrders, btnNavCustomers, btnNavSettings };
+            foreach (var b in navs)
+            {
+                if (b == null) continue;
+                if (b == active)
+                {
+                    b.BackColor = activeBack;
+                    b.ForeColor = activeFore;
+                }
+                else
+                {
+                    b.BackColor = defaultBack;
+                    b.ForeColor = defaultFore;
+                }
+            }
+        }
+
+        // ======================
+        // Orders view inside Dashboard (no new form)
+        // ======================
+        private void BtnNavOrders_Click(object sender, EventArgs e)
+        {
+            SetActiveNavButton(btnNavOrders);
+            isOrdersView = true;
+            isCustomersView = false;
+            ShowOrdersList();
+        }
+
+        private void BtnNavCustomers_Click(object sender, EventArgs e)
+        {
+            SetActiveNavButton(btnNavCustomers);
+            isCustomersView = true;
+            isOrdersView = false;
+            ShowCustomersList();
+        }
+
+        private void BtnNavDashboard_Click(object sender, EventArgs e)
+        {
+            SetActiveNavButton(btnNavDashboard);
+            isOrdersView = false;
+            isCustomersView = false;
+            // restore product management view
+            inputPanel.Visible = true;
+            lblCrudTitle.Text = "Manage Products";
+            LoadProducts();
+        }
+
+        private void ShowCustomersList()
+        {
+            try
+            {
+                string query = @"
+                    SELECT u.UserId, u.UserName, u.UserEmail,
+                           COUNT(o.OrderId) AS OrderCount,
+                           ISNULL(SUM(o.TotalCost), 0) AS TotalSpent
+                    FROM Users u
+                    LEFT JOIN Orders o ON u.UserId = o.UserId
+                    GROUP BY u.UserId, u.UserName, u.UserEmail
+                    ORDER BY TotalSpent DESC";
+
+                DataTable dt = ExecuteQuery(query);
+
+                dataGridViewProducts.DataSource = dt;
+                isCustomersView = true;
+                isOrdersView = false;
+
+                lblCrudTitle.Text = "Customers";
+                inputPanel.Visible = false;
+
+                EnsureOrderDetailsPanel();
+                orderDetailsPanel.Visible = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading customers: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ShowCustomerOrders(int userId)
+        {
+            try
+            {
+                DataTable dtUser = ExecuteQuery("SELECT UserId, UserName, UserEmail FROM Users WHERE UserId = @UserId", new SqlParameter("@UserId", userId));
+                if (dtUser == null || dtUser.Rows.Count == 0) return;
+
+                DataRow u = dtUser.Rows[0];
+
+                DataTable dtOrders = ExecuteQuery(@"
+                    SELECT OrderId, OrderDate, TotalCost, OrderStatus, UserPhone, UserCity, UserAddress
+                    FROM Orders
+                    WHERE UserId = @UserId
+                    ORDER BY OrderDate DESC", new SqlParameter("@UserId", userId));
+
+                EnsureOrderDetailsPanel();
+                lblOrderMeta.Text = $"Customer: {u["UserName"]} ({u["UserEmail"]})\nOrders: {dtOrders.Rows.Count}";
+                dataGridViewOrderItems.DataSource = dtOrders;
+                orderDetailsPanel.Visible = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading customer orders: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ShowOrdersList()
+        {
+            try
+            {
+                string query = @"
+                    SELECT o.OrderId, o.OrderDate, o.TotalCost, o.OrderStatus,
+                           o.UserPhone, o.UserCity, o.UserAddress,
+                           u.UserId, u.UserName, u.UserEmail
+                    FROM Orders o
+                    LEFT JOIN Users u ON o.UserId = u.UserId
+                    ORDER BY o.OrderDate DESC";
+
+                DataTable dt = ExecuteQuery(query);
+
+                // show in existing grid
+                dataGridViewProducts.DataSource = dt;
+                isOrdersView = true;
+
+                // update title
+                lblCrudTitle.Text = "Orders";
+
+                // hide product input panel while viewing orders
+                inputPanel.Visible = false;
+
+                // ensure details panel exists
+                EnsureOrderDetailsPanel();
+                orderDetailsPanel.Visible = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading orders: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void EnsureOrderDetailsPanel()
+        {
+            if (orderDetailsPanel != null) return;
+
+            orderDetailsPanel = new Panel();
+            orderDetailsPanel.Width = 420;
+            orderDetailsPanel.Dock = DockStyle.Right;
+            orderDetailsPanel.Padding = new Padding(15);
+            orderDetailsPanel.BackColor = Color.White;
+
+            btnCloseOrderDetails = new Button();
+            btnCloseOrderDetails.Text = "Close";
+            btnCloseOrderDetails.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            btnCloseOrderDetails.Size = new Size(70, 30);
+            btnCloseOrderDetails.Location = new Point(orderDetailsPanel.Width - 85, 10);
+            btnCloseOrderDetails.Click += (s, e) => orderDetailsPanel.Visible = false;
+            orderDetailsPanel.Controls.Add(btnCloseOrderDetails);
+
+            lblOrderMeta = new Label();
+            lblOrderMeta.AutoSize = true;
+            lblOrderMeta.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblOrderMeta.ForeColor = Color.FromArgb(31, 41, 55);
+            lblOrderMeta.Location = new Point(15, 15);
+            lblOrderMeta.MaximumSize = new Size(orderDetailsPanel.Width - 30, 0);
+            orderDetailsPanel.Controls.Add(lblOrderMeta);
+
+            dataGridViewOrderItems = new DataGridView();
+            dataGridViewOrderItems.Dock = DockStyle.Bottom;
+            dataGridViewOrderItems.Height = 300;
+            dataGridViewOrderItems.ReadOnly = true;
+            dataGridViewOrderItems.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            orderDetailsPanel.Controls.Add(dataGridViewOrderItems);
+
+            crudPanel.Controls.Add(orderDetailsPanel);
+            orderDetailsPanel.BringToFront();
+        }
+
+        private void ShowOrderDetails(int orderId)
+        {
+            try
+            {
+                // order meta
+                string orderQuery = @"
+                    SELECT o.OrderId, o.TotalCost, o.OrderStatus, o.UserPhone, o.UserCity, o.UserAddress, o.OrderDate,
+                           u.UserName, u.UserEmail
+                    FROM Orders o
+                    LEFT JOIN Users u ON o.UserId = u.UserId
+                    WHERE o.OrderId = @OrderId";
+
+                DataTable dtOrder = ExecuteQuery(orderQuery, new SqlParameter("@OrderId", orderId));
+                if (dtOrder == null || dtOrder.Rows.Count == 0) return;
+
+                DataRow r = dtOrder.Rows[0];
+                string meta = $"Order #{r["OrderId"]}  •  {Convert.ToDateTime(r["OrderDate"]):g}\n" +
+                              $"Customer: {r["UserName"]} ({r["UserEmail"]})\n" +
+                              $"Phone: {r["UserPhone"]}  •  {r["UserCity"]}\n" +
+                              $"Address: {r["UserAddress"]}\n" +
+                              $"Status: {r["OrderStatus"]}  •  Total: {Convert.ToDecimal(r["TotalCost"]):C2}";
+
+                lblOrderMeta.Text = meta;
+
+                // items
+                DataTable dtItems = ExecuteQuery(@"
+                    SELECT ProductName, ProductPrice, Quantity,
+                           ProductPrice * Quantity AS LineTotal
+                    FROM OrderItems
+                    WHERE OrderId = @OrderId", new SqlParameter("@OrderId", orderId));
+
+                dataGridViewOrderItems.DataSource = dtItems;
+
+                EnsureOrderDetailsPanel();
+                orderDetailsPanel.Visible = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading order details: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
