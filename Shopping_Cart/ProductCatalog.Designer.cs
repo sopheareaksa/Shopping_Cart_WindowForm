@@ -276,8 +276,9 @@ namespace Shopping_Cart
             this.btnCategoryBooks.Name = "btnCategoryBooks";
             this.btnCategoryBooks.Size = new System.Drawing.Size(200, 45);
             this.btnCategoryBooks.TabIndex = 6;
-            this.btnCategoryBooks.Text = "Books";
+            this.btnCategoryBooks.Text = "📚  Books";
             this.btnCategoryBooks.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCategoryBooks.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
             this.btnCategoryBooks.UseVisualStyleBackColor = false;
             this.btnCategoryBooks.Click += new System.EventHandler(this.btnCategory_Click);
             // 
@@ -296,8 +297,9 @@ namespace Shopping_Cart
             this.btnCategorySports.Name = "btnCategorySports";
             this.btnCategorySports.Size = new System.Drawing.Size(200, 45);
             this.btnCategorySports.TabIndex = 5;
-            this.btnCategorySports.Text = "Sports";
+            this.btnCategorySports.Text = "🏀  Sports";
             this.btnCategorySports.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCategorySports.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
             this.btnCategorySports.UseVisualStyleBackColor = false;
             this.btnCategorySports.Click += new System.EventHandler(this.btnCategory_Click);
             // 
@@ -316,8 +318,9 @@ namespace Shopping_Cart
             this.btnCategoryHome.Name = "btnCategoryHome";
             this.btnCategoryHome.Size = new System.Drawing.Size(200, 45);
             this.btnCategoryHome.TabIndex = 4;
-            this.btnCategoryHome.Text = "Home & Living";
+            this.btnCategoryHome.Text = "🏠  Home & Living";
             this.btnCategoryHome.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCategoryHome.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
             this.btnCategoryHome.UseVisualStyleBackColor = false;
             this.btnCategoryHome.Click += new System.EventHandler(this.btnCategory_Click);
             // 
@@ -336,8 +339,9 @@ namespace Shopping_Cart
             this.btnCategoryFashion.Name = "btnCategoryFashion";
             this.btnCategoryFashion.Size = new System.Drawing.Size(200, 45);
             this.btnCategoryFashion.TabIndex = 3;
-            this.btnCategoryFashion.Text = "Fashion";
+            this.btnCategoryFashion.Text = "👗  Fashion";
             this.btnCategoryFashion.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCategoryFashion.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
             this.btnCategoryFashion.UseVisualStyleBackColor = false;
             this.btnCategoryFashion.Click += new System.EventHandler(this.btnCategory_Click);
             // 
@@ -356,8 +360,9 @@ namespace Shopping_Cart
             this.btnCategoryElectronics.Name = "btnCategoryElectronics";
             this.btnCategoryElectronics.Size = new System.Drawing.Size(200, 45);
             this.btnCategoryElectronics.TabIndex = 2;
-            this.btnCategoryElectronics.Text = "Electronics";
+            this.btnCategoryElectronics.Text = "🔌  Electronics";
             this.btnCategoryElectronics.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCategoryElectronics.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
             this.btnCategoryElectronics.UseVisualStyleBackColor = false;
             this.btnCategoryElectronics.Click += new System.EventHandler(this.btnCategory_Click);
             // 
@@ -376,8 +381,9 @@ namespace Shopping_Cart
             this.btnCategoryAll.Name = "btnCategoryAll";
             this.btnCategoryAll.Size = new System.Drawing.Size(200, 45);
             this.btnCategoryAll.TabIndex = 1;
-            this.btnCategoryAll.Text = "All Products";
+            this.btnCategoryAll.Text = "🛒  All Products";
             this.btnCategoryAll.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCategoryAll.Padding = new System.Windows.Forms.Padding(8, 0, 0, 0);
             this.btnCategoryAll.UseVisualStyleBackColor = false;
             // 
             // lblCategories

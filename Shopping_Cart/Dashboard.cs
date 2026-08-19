@@ -153,10 +153,6 @@ namespace Shopping_Cart
                 Console.WriteLine("Failed to load summary: " + ex.Message);
             }
         }
-
-        // ======================
-        // Auto-calculate final price from special offer percentage
-        // ======================
         private void CalculateFinalPrice()
         {
             if (decimal.TryParse(txtPrice.Text.Trim(), out decimal price))
@@ -180,10 +176,6 @@ namespace Shopping_Cart
                 txtDiscount.Clear();
             }
         }
-
-        // ======================
-        // Add new product
-        // ======================
         private void btnAdd_Click(object sender, EventArgs e)
         {
             if (!ValidateInputs()) return;
@@ -223,10 +215,6 @@ namespace Shopping_Cart
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-        // ======================
-        // Update existing product
-        // ======================
         private void btnUpdate_Click(object sender, EventArgs e)
         {
             if (!ValidateInputs()) return;
@@ -289,10 +277,6 @@ namespace Shopping_Cart
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-        // ======================
-        // Delete product
-        // ======================
         private void btnDelete_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(txtProductId.Text) || txtProductId.Text == "(Auto)")
@@ -341,10 +325,6 @@ namespace Shopping_Cart
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
-        // ======================
-        // Clear inputs
-        // ======================
         private void btnClear_Click(object sender, EventArgs e)
         {
             ClearInputs();
@@ -364,10 +344,6 @@ namespace Shopping_Cart
             txtImage4.Clear();
             txtCreatedAt.Clear();
         }
-
-        // ======================
-        // Browse image from folder
-        // ======================
         private void btnBrowseImage_Click(object sender, EventArgs e)
         {
             Button clickedButton = sender as Button;
@@ -389,10 +365,6 @@ namespace Shopping_Cart
                 }
             }
         }
-
-        // ======================
-        // Fill inputs when grid row is clicked
-        // ======================
         private void dataGridViewProducts_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
@@ -432,10 +404,6 @@ namespace Shopping_Cart
             txtImage4.Text = row.Cells["Image4"].Value?.ToString();
             txtCreatedAt.Text = row.Cells["CreatedAt"].Value?.ToString();
         }
-
-        // ======================
-        // Validation
-        // ======================
         private bool ValidateInputs()
         {
             if (string.IsNullOrWhiteSpace(txtProductName.Text))
@@ -521,10 +489,6 @@ namespace Shopping_Cart
                 }
             }
         }
-
-        // ======================
-        // Orders view inside Dashboard (no new form)
-        // ======================
         private void BtnNavOrders_Click(object sender, EventArgs e)
         {
             SetActiveNavButton(btnNavOrders);

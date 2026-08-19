@@ -35,7 +35,6 @@ namespace Shopping_Cart
                 Login();
         }
 
-
         private void Login()
         {
             string email = GetEmail();
