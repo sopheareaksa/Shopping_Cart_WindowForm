@@ -2,7 +2,9 @@ using System;
 using System.Data;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 using Microsoft.Data.SqlClient;
 
 namespace Shopping_Cart
@@ -19,6 +21,18 @@ namespace Shopping_Cart
         private DataGridView dataGridViewOrderItems;
         private Label lblOrderMeta;
         private Button btnCloseOrderDetails;
+
+        // reports panel and controls (created on demand)
+        private bool isReportsView = false;
+        private Panel reportsPanel;
+        private DataGridView dataGridViewReport;
+        private Label lblReportSummary;
+        private Button btnReportSales;
+        private Button btnReportStatus;
+        private Button btnReportProducts;
+        private Button btnReportCustomers;
+        private Button btnReportActivity;
+        private Chart reportChart;
 
         private string GetConnectionString()
         {
@@ -71,18 +85,28 @@ namespace Shopping_Cart
 
         private void Dashboard_Load(object sender, EventArgs e)
         {
+            EnsureActivityLogTable();
             LoadProducts();
 
             // Wire up auto-calculation events
             txtPrice.TextChanged += (s, ev) => CalculateFinalPrice();
             txtSpecialOffer.TextChanged += (s, ev) => CalculateFinalPrice();
-            // Wire orders and customers navigation
+            // Wire orders, customers, and reports navigation
             btnNavOrders.Click += (s, ev) => BtnNavOrders_Click(s, ev);
             btnNavCustomers.Click += (s, ev) => BtnNavCustomers_Click(s, ev);
             btnNavDashboard.Click += (s, ev) => BtnNavDashboard_Click(s, ev);
+            btnNavSettings.Click += (s, ev) => BtnNavReports_Click(s, ev);
 
             // default active nav
             SetActiveNavButton(btnNavDashboard);
+
+            dataGridViewProducts.DataBindingComplete += (s, ev) =>
+            {
+                if (!isOrdersView && !isCustomersView)
+                {
+                    HideProductImageColumns();
+                }
+            };
         }
 
         // ======================
@@ -100,6 +124,7 @@ namespace Shopping_Cart
 
                 DataTable dt = ExecuteQuery(query);
                 dataGridViewProducts.DataSource = dt;
+                HideProductImageColumns();
                 // update summary cards whenever products are (re)loaded
                 LoadSummary();
             }
@@ -107,6 +132,18 @@ namespace Shopping_Cart
             {
                 MessageBox.Show($"Error loading products: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void HideProductImageColumns()
+        {
+            string[] imageCols = { "Image1", "Image2", "Image3", "Image4" };
+            foreach (string col in imageCols)
+            {
+                if (dataGridViewProducts.Columns.Contains(col))
+                {
+                    dataGridViewProducts.Columns[col].Visible = false;
+                }
             }
         }
 
@@ -118,7 +155,7 @@ namespace Shopping_Cart
             try
             {
                 // Total Sales (sum of TotalCost in Orders)
-                DataTable dtSales = ExecuteQuery("SELECT ISNULL(SUM(TotalCost), 0) AS TotalSales FROM Orders");
+                DataTable dtSales = ExecuteQuery("SELECT ISNULL(SUM(TotalCost), 0) AS TotalSales FROM Orders WHERE OrderStatus IN ('Paid', 'Pending')");
                 decimal totalSales = 0;
                 if (dtSales != null && dtSales.Rows.Count > 0 && dtSales.Rows[0]["TotalSales"] != DBNull.Value)
                     totalSales = Convert.ToDecimal(dtSales.Rows[0]["TotalSales"]);
@@ -203,6 +240,8 @@ namespace Shopping_Cart
 
                 ExecuteNonQuery(query, parameters);
 
+                LogProductActivity("Add", txtProductName.Text.Trim());
+
                 MessageBox.Show("Product added successfully.", "Success",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -259,6 +298,8 @@ namespace Shopping_Cart
 
                 if (rows > 0)
                 {
+                    LogProductActivity("Update", txtProductName.Text.Trim());
+
                     MessageBox.Show("Product updated successfully.", "Success",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -307,6 +348,8 @@ namespace Shopping_Cart
 
                 if (rows > 0)
                 {
+                    LogProductActivity("Delete", txtProductName.Text.Trim());
+
                     MessageBox.Show("Product deleted successfully.", "Success",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
 
@@ -461,17 +504,20 @@ namespace Shopping_Cart
         {
             SetActiveNavButton(btnNavProducts);
             ProductCatalog catalogForm = new ProductCatalog();
+            catalogForm.IsAdmin = true;
+            catalogForm.UserName = "Admin";
+            catalogForm.UserEmail = "admin123@gmail.com";
             catalogForm.Show();
             this.Hide();
         }
 
         private void SetActiveNavButton(Button active)
         {
-            // default styles
-            Color activeBack = Color.FromArgb(239, 246, 255);
-            Color activeFore = Color.FromArgb(59, 130, 246);
-            Color defaultBack = Color.White;
-            Color defaultFore = Color.FromArgb(75, 85, 99);
+            // default styles for purple/violet sidebar theme
+            Color activeBack = Color.FromArgb(118, 91, 184);
+            Color activeFore = Color.White;
+            Color defaultBack = Color.FromArgb(91, 68, 149);
+            Color defaultFore = Color.FromArgb(235, 230, 250);
 
             Button[] navs = { btnNavDashboard, btnNavProducts, btnNavOrders, btnNavCustomers, btnNavSettings };
             foreach (var b in navs)
@@ -481,11 +527,13 @@ namespace Shopping_Cart
                 {
                     b.BackColor = activeBack;
                     b.ForeColor = activeFore;
+                    b.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
                 }
                 else
                 {
                     b.BackColor = defaultBack;
                     b.ForeColor = defaultFore;
+                    b.Font = new Font("Segoe UI", 11F, FontStyle.Regular);
                 }
             }
         }
@@ -494,6 +542,9 @@ namespace Shopping_Cart
             SetActiveNavButton(btnNavOrders);
             isOrdersView = true;
             isCustomersView = false;
+            isReportsView = false;
+            HideReportsPanel();
+            contentTable.Visible = true;
             ShowOrdersList();
         }
 
@@ -502,6 +553,9 @@ namespace Shopping_Cart
             SetActiveNavButton(btnNavCustomers);
             isCustomersView = true;
             isOrdersView = false;
+            isReportsView = false;
+            HideReportsPanel();
+            contentTable.Visible = true;
             ShowCustomersList();
         }
 
@@ -510,6 +564,9 @@ namespace Shopping_Cart
             SetActiveNavButton(btnNavDashboard);
             isOrdersView = false;
             isCustomersView = false;
+            isReportsView = false;
+            HideReportsPanel();
+            contentTable.Visible = true;
             // restore product management view
             inputPanel.Visible = true;
             lblCrudTitle.Text = "Manage Products";
@@ -631,7 +688,7 @@ namespace Shopping_Cart
             lblOrderMeta = new Label();
             lblOrderMeta.AutoSize = true;
             lblOrderMeta.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblOrderMeta.ForeColor = Color.FromArgb(31, 41, 55);
+            lblOrderMeta.ForeColor = Color.FromArgb(45, 33, 71);
             lblOrderMeta.Location = new Point(15, 15);
             lblOrderMeta.MaximumSize = new Size(orderDetailsPanel.Width - 30, 0);
             orderDetailsPanel.Controls.Add(lblOrderMeta);
@@ -686,6 +743,582 @@ namespace Shopping_Cart
             catch (Exception ex)
             {
                 MessageBox.Show($"Error loading order details: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ======================
+        // Reports Panel
+        // ======================
+
+        private void BtnNavReports_Click(object sender, EventArgs e)
+        {
+            SetActiveNavButton(btnNavSettings);
+            isOrdersView = false;
+            isCustomersView = false;
+            isReportsView = true;
+
+            // hide the default content (cards + crud)
+            contentTable.Visible = false;
+
+            // build and show reports panel
+            EnsureReportsPanel();
+            reportsPanel.Visible = true;
+
+            // default to Sales Report
+            LoadSalesReport();
+        }
+
+        private void HideReportsPanel()
+        {
+            if (reportsPanel != null)
+                reportsPanel.Visible = false;
+        }
+
+        private void EnsureReportsPanel()
+        {
+            if (reportsPanel != null) return;
+
+            reportsPanel = new Panel();
+            reportsPanel.Dock = DockStyle.Fill;
+            reportsPanel.BackColor = Color.FromArgb(248, 250, 252);
+            reportsPanel.Padding = new Padding(0);
+
+            // ── Top bar with title and report tab buttons ──
+            Panel topBar = new Panel();
+            topBar.Dock = DockStyle.Top;
+            topBar.Height = 60;
+            topBar.BackColor = Color.White;
+            topBar.Padding = new Padding(15, 0, 15, 0);
+
+            Label lblReportsTitle = new Label();
+            lblReportsTitle.Text = "Reports";
+            lblReportsTitle.Font = new Font("Segoe UI", 16F, FontStyle.Bold);
+            lblReportsTitle.ForeColor = Color.FromArgb(31, 41, 55);
+            lblReportsTitle.AutoSize = true;
+            lblReportsTitle.Location = new Point(15, 14);
+            topBar.Controls.Add(lblReportsTitle);
+
+            // Tab buttons
+            int btnX = 200;
+            int btnWidth = 130;
+            int btnHeight = 36;
+            int gap = 10;
+            int btnY = 12;
+
+            btnReportSales = CreateReportTabButton("Sales Report", btnX, btnY, btnWidth, btnHeight);
+            btnReportSales.Click += (s, ev) => LoadSalesReport();
+            topBar.Controls.Add(btnReportSales);
+
+            btnReportStatus = CreateReportTabButton("Order Status", btnX + btnWidth + gap, btnY, btnWidth, btnHeight);
+            btnReportStatus.Click += (s, ev) => LoadOrderStatusReport();
+            topBar.Controls.Add(btnReportStatus);
+
+            btnReportProducts = CreateReportTabButton("Top Products", btnX + (btnWidth + gap) * 2, btnY, btnWidth, btnHeight);
+            btnReportProducts.Click += (s, ev) => LoadTopProductsReport();
+            topBar.Controls.Add(btnReportProducts);
+
+            btnReportCustomers = CreateReportTabButton("Top Customers", btnX + (btnWidth + gap) * 3, btnY, btnWidth + 10, btnHeight);
+            btnReportCustomers.Click += (s, ev) => LoadTopCustomersReport();
+            topBar.Controls.Add(btnReportCustomers);
+
+            btnReportActivity = CreateReportTabButton("Activity Log", btnX + (btnWidth + gap) * 4 + 10, btnY, btnWidth, btnHeight);
+            btnReportActivity.Click += (s, ev) => LoadActivityLogReport();
+            topBar.Controls.Add(btnReportActivity);
+
+            reportsPanel.Controls.Add(topBar);
+
+            // ── Summary label ──
+            lblReportSummary = new Label();
+            lblReportSummary.Dock = DockStyle.Top;
+            lblReportSummary.Height = 50;
+            lblReportSummary.BackColor = Color.FromArgb(248, 250, 252);
+            lblReportSummary.Font = new Font("Segoe UI", 11F);
+            lblReportSummary.ForeColor = Color.FromArgb(55, 65, 81);
+            lblReportSummary.Padding = new Padding(15, 12, 15, 0);
+            lblReportSummary.Text = "";
+            reportsPanel.Controls.Add(lblReportSummary);
+
+            // ── Chart ──
+            reportChart = new Chart();
+            reportChart.Dock = DockStyle.Top;
+            reportChart.Height = 280;
+            reportChart.BackColor = Color.White;
+            reportChart.BorderlineColor = Color.FromArgb(229, 231, 235);
+            reportChart.BorderlineDashStyle = ChartDashStyle.Solid;
+            reportChart.BorderlineWidth = 1;
+            reportChart.Padding = new Padding(10);
+
+            ChartArea chartArea = new ChartArea("MainArea");
+            chartArea.BackColor = Color.White;
+            chartArea.AxisX.MajorGrid.LineColor = Color.FromArgb(240, 240, 240);
+            chartArea.AxisY.MajorGrid.LineColor = Color.FromArgb(240, 240, 240);
+            chartArea.AxisX.LabelStyle.Font = new Font("Segoe UI", 8.5F);
+            chartArea.AxisY.LabelStyle.Font = new Font("Segoe UI", 8.5F);
+            chartArea.AxisX.LabelStyle.ForeColor = Color.FromArgb(75, 85, 99);
+            chartArea.AxisY.LabelStyle.ForeColor = Color.FromArgb(75, 85, 99);
+            chartArea.AxisX.LineColor = Color.FromArgb(209, 213, 219);
+            chartArea.AxisY.LineColor = Color.FromArgb(209, 213, 219);
+            chartArea.AxisX.MajorTickMark.LineColor = Color.FromArgb(209, 213, 219);
+            chartArea.AxisY.MajorTickMark.LineColor = Color.FromArgb(209, 213, 219);
+            reportChart.ChartAreas.Add(chartArea);
+
+            Legend legend = new Legend();
+            legend.Font = new Font("Segoe UI", 9F);
+            legend.ForeColor = Color.FromArgb(55, 65, 81);
+            legend.Docking = Docking.Top;
+            legend.Alignment = StringAlignment.Center;
+            reportChart.Legends.Add(legend);
+
+            reportsPanel.Controls.Add(reportChart);
+
+            // ── DataGridView for report data ──
+            dataGridViewReport = new DataGridView();
+            dataGridViewReport.Dock = DockStyle.Fill;
+            dataGridViewReport.ReadOnly = true;
+            dataGridViewReport.AllowUserToAddRows = false;
+            dataGridViewReport.AllowUserToDeleteRows = false;
+            dataGridViewReport.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridViewReport.BackgroundColor = Color.White;
+            dataGridViewReport.BorderStyle = BorderStyle.None;
+            dataGridViewReport.RowHeadersVisible = false;
+            dataGridViewReport.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dataGridViewReport.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            dataGridViewReport.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(249, 250, 251);
+            dataGridViewReport.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(55, 65, 81);
+            dataGridViewReport.ColumnHeadersDefaultCellStyle.Padding = new Padding(8);
+            dataGridViewReport.ColumnHeadersHeight = 45;
+            dataGridViewReport.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
+            dataGridViewReport.DefaultCellStyle.Padding = new Padding(8);
+            dataGridViewReport.RowTemplate.Height = 40;
+            dataGridViewReport.EnableHeadersVisualStyles = false;
+            dataGridViewReport.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(249, 250, 251);
+            dataGridViewReport.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dataGridViewReport.GridColor = Color.FromArgb(229, 231, 235);
+            reportsPanel.Controls.Add(dataGridViewReport);
+
+            // Dock stacking order: Fill at bottom, then Top items stack above
+            reportsPanel.Controls.SetChildIndex(dataGridViewReport, 0);
+            reportsPanel.Controls.SetChildIndex(reportChart, 0);
+            reportsPanel.Controls.SetChildIndex(lblReportSummary, 0);
+            reportsPanel.Controls.SetChildIndex(topBar, 0);
+
+            // Add to contentPanel
+            contentPanel.Controls.Add(reportsPanel);
+        }
+
+        private Button CreateReportTabButton(string text, int x, int y, int width, int height)
+        {
+            Button btn = new Button();
+            btn.Text = text;
+            btn.Location = new Point(x, y);
+            btn.Size = new Size(width, height);
+            btn.FlatStyle = FlatStyle.Flat;
+            btn.FlatAppearance.BorderSize = 0;
+            btn.BackColor = Color.FromArgb(237, 233, 246);
+            btn.ForeColor = Color.FromArgb(91, 68, 149);
+            btn.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            btn.Cursor = Cursors.Hand;
+            return btn;
+        }
+
+        private void SetActiveReportTab(Button active)
+        {
+            Color activeBg = Color.FromArgb(91, 68, 149);
+            Color activeFg = Color.White;
+            Color defaultBg = Color.FromArgb(237, 233, 246);
+            Color defaultFg = Color.FromArgb(91, 68, 149);
+
+            Button[] tabs = { btnReportSales, btnReportStatus, btnReportProducts, btnReportCustomers, btnReportActivity };
+            foreach (var b in tabs)
+            {
+                if (b == null) continue;
+                if (b == active)
+                {
+                    b.BackColor = activeBg;
+                    b.ForeColor = activeFg;
+                }
+                else
+                {
+                    b.BackColor = defaultBg;
+                    b.ForeColor = defaultFg;
+                }
+            }
+        }
+
+        // ── Report 1: Sales Report (monthly, Paid vs Pending) ──
+        private void LoadSalesReport()
+        {
+            SetActiveReportTab(btnReportSales);
+            try
+            {
+                string query = @"
+                    SELECT 
+                        FORMAT(OrderDate, 'yyyy-MM') AS [Month],
+                        SUM(CASE WHEN OrderStatus = 'Paid' THEN TotalCost ELSE 0 END) AS [Paid Amount],
+                        SUM(CASE WHEN OrderStatus = 'Pending' THEN TotalCost ELSE 0 END) AS [Pending Amount],
+                        SUM(CASE WHEN OrderStatus IN ('Paid', 'Pending') THEN TotalCost ELSE 0 END) AS [Total]
+                    FROM Orders
+                    WHERE OrderStatus IN ('Paid', 'Pending')
+                    GROUP BY FORMAT(OrderDate, 'yyyy-MM')
+                    ORDER BY [Month] ASC";
+
+                DataTable dt = ExecuteQuery(query);
+                dataGridViewReport.DataSource = dt;
+
+                // Calculate summary
+                decimal totalPaid = 0, totalPending = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    totalPaid += Convert.ToDecimal(row["Paid Amount"]);
+                    totalPending += Convert.ToDecimal(row["Pending Amount"]);
+                }
+                lblReportSummary.Text = $"Total Paid: {totalPaid:C0}   |   Total Pending: {totalPending:C0}   |   Grand Total: {(totalPaid + totalPending):C0}";
+
+                // Chart: Stacked bar chart for Paid vs Pending by month
+                reportChart.Series.Clear();
+                reportChart.ChartAreas[0].AxisX.Title = "Month";
+                reportChart.ChartAreas[0].AxisY.Title = "Amount ($)";
+                reportChart.ChartAreas[0].AxisX.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+                reportChart.ChartAreas[0].AxisY.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+                Series seriesPaid = new Series("Paid");
+                seriesPaid.ChartType = SeriesChartType.Column;
+                seriesPaid.Color = Color.FromArgb(34, 197, 94);
+                seriesPaid.BorderWidth = 0;
+
+                Series seriesPending = new Series("Pending");
+                seriesPending.ChartType = SeriesChartType.Column;
+                seriesPending.Color = Color.FromArgb(251, 191, 36);
+                seriesPending.BorderWidth = 0;
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    string month = row["Month"].ToString();
+                    seriesPaid.Points.AddXY(month, Convert.ToDouble(row["Paid Amount"]));
+                    seriesPending.Points.AddXY(month, Convert.ToDouble(row["Pending Amount"]));
+                }
+
+                reportChart.Series.Add(seriesPaid);
+                reportChart.Series.Add(seriesPending);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading sales report: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ── Report 2: Order Status Report ──
+        private void LoadOrderStatusReport()
+        {
+            SetActiveReportTab(btnReportStatus);
+            try
+            {
+                string query = @"
+                    SELECT 
+                        OrderStatus AS [Status],
+                        COUNT(*) AS [Order Count],
+                        SUM(TotalCost) AS [Total Amount]
+                    FROM Orders
+                    GROUP BY OrderStatus
+                    ORDER BY [Total Amount] DESC";
+
+                DataTable dt = ExecuteQuery(query);
+                dataGridViewReport.DataSource = dt;
+
+                int totalOrders = 0;
+                decimal totalAmount = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    totalOrders += Convert.ToInt32(row["Order Count"]);
+                    totalAmount += Convert.ToDecimal(row["Total Amount"]);
+                }
+                lblReportSummary.Text = $"Total Orders: {totalOrders}   |   Total Amount: {totalAmount:C0}";
+
+                // Chart: Pie chart for order status distribution
+                reportChart.Series.Clear();
+                reportChart.ChartAreas[0].AxisX.Title = "";
+                reportChart.ChartAreas[0].AxisY.Title = "";
+
+                Series seriesStatus = new Series("Orders");
+                seriesStatus.ChartType = SeriesChartType.Pie;
+                seriesStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+                Color[] pieColors = {
+                    Color.FromArgb(34, 197, 94),   // green (Paid)
+                    Color.FromArgb(251, 191, 36),  // amber (Pending)
+                    Color.FromArgb(239, 68, 68),   // red (Cancelled)
+                    Color.FromArgb(99, 102, 241),  // indigo
+                    Color.FromArgb(168, 162, 158)   // gray
+                };
+
+                int colorIdx = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    int idx = seriesStatus.Points.AddXY(row["Status"].ToString(), Convert.ToDouble(row["Order Count"]));
+                    seriesStatus.Points[idx].Color = pieColors[colorIdx % pieColors.Length];
+                    seriesStatus.Points[idx].Label = $"{row["Status"]} ({row["Order Count"]})";
+                    colorIdx++;
+                }
+
+                seriesStatus["PieLabelStyle"] = "Outside";
+                reportChart.Series.Add(seriesStatus);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading order status report: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ── Report 3: Top Selling Products ──
+        private void LoadTopProductsReport()
+        {
+            SetActiveReportTab(btnReportProducts);
+            try
+            {
+                string query = @"
+                    SELECT 
+                        oi.ProductName AS [Product Name],
+                        p.Category AS [Category],
+                        SUM(oi.Quantity) AS [Qty Sold],
+                        SUM(oi.ProductPrice * oi.Quantity) AS [Revenue]
+                    FROM OrderItems oi
+                    LEFT JOIN Products p ON oi.ProductName = p.ProductName
+                    INNER JOIN Orders o ON oi.OrderId = o.OrderId
+                    WHERE o.OrderStatus IN ('Paid', 'Pending')
+                    GROUP BY oi.ProductName, p.Category
+                    ORDER BY [Qty Sold] DESC";
+
+                DataTable dt = ExecuteQuery(query);
+                dataGridViewReport.DataSource = dt;
+
+                int totalQty = 0;
+                decimal totalRevenue = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    totalQty += Convert.ToInt32(row["Qty Sold"]);
+                    totalRevenue += Convert.ToDecimal(row["Revenue"]);
+                }
+                lblReportSummary.Text = $"Total Items Sold: {totalQty}   |   Total Revenue: {totalRevenue:C0}";
+
+                // Chart: Horizontal bar chart for top products by quantity
+                reportChart.Series.Clear();
+                reportChart.ChartAreas[0].AxisX.Title = "Product";
+                reportChart.ChartAreas[0].AxisY.Title = "Qty Sold";
+                reportChart.ChartAreas[0].AxisX.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+                reportChart.ChartAreas[0].AxisY.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+                Series seriesQty = new Series("Qty Sold");
+                seriesQty.ChartType = SeriesChartType.Bar;
+                seriesQty.Color = Color.FromArgb(99, 102, 241);
+                seriesQty.BorderWidth = 0;
+
+                // Show top 10 products
+                int count = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    if (count >= 10) break;
+                    string name = row["Product Name"].ToString();
+                    if (name.Length > 20) name = name.Substring(0, 17) + "...";
+                    seriesQty.Points.AddXY(name, Convert.ToDouble(row["Qty Sold"]));
+                    count++;
+                }
+
+                reportChart.Series.Add(seriesQty);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading top products report: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ── Report 4: Top Customers ──
+        private void LoadTopCustomersReport()
+        {
+            SetActiveReportTab(btnReportCustomers);
+            try
+            {
+                string query = @"
+                    SELECT 
+                        u.UserName AS [Customer Name],
+                        u.UserEmail AS [Email],
+                        COUNT(o.OrderId) AS [Orders],
+                        SUM(o.TotalCost) AS [Total Spent]
+                    FROM Users u
+                    INNER JOIN Orders o ON u.UserId = o.UserId
+                    WHERE o.OrderStatus IN ('Paid', 'Pending')
+                    GROUP BY u.UserName, u.UserEmail
+                    ORDER BY [Total Spent] DESC";
+
+                DataTable dt = ExecuteQuery(query);
+                dataGridViewReport.DataSource = dt;
+
+                int totalCustomers = dt.Rows.Count;
+                decimal totalSpent = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    totalSpent += Convert.ToDecimal(row["Total Spent"]);
+                }
+                lblReportSummary.Text = $"Active Customers: {totalCustomers}   |   Combined Spending: {totalSpent:C0}";
+
+                // Chart: Column chart for top customers by spending
+                reportChart.Series.Clear();
+                reportChart.ChartAreas[0].AxisX.Title = "Customer";
+                reportChart.ChartAreas[0].AxisY.Title = "Total Spent ($)";
+                reportChart.ChartAreas[0].AxisX.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+                reportChart.ChartAreas[0].AxisY.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+                Series seriesSpent = new Series("Total Spent");
+                seriesSpent.ChartType = SeriesChartType.Column;
+                seriesSpent.Color = Color.FromArgb(14, 165, 233);
+                seriesSpent.BorderWidth = 0;
+
+                // Show top 10 customers
+                int count = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    if (count >= 10) break;
+                    string name = row["Customer Name"].ToString();
+                    if (name.Length > 15) name = name.Substring(0, 12) + "...";
+                    seriesSpent.Points.AddXY(name, Convert.ToDouble(row["Total Spent"]));
+                    count++;
+                }
+
+                reportChart.Series.Add(seriesSpent);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading top customers report: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // ======================
+        // Product Activity Log
+        // ======================
+
+        private void EnsureActivityLogTable()
+        {
+            try
+            {
+                string createTableQuery = @"
+                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'ProductActivityLog')
+                    BEGIN
+                        CREATE TABLE ProductActivityLog (
+                            LogId INT IDENTITY(1,1) PRIMARY KEY,
+                            ActionType NVARCHAR(20) NOT NULL,
+                            ProductName NVARCHAR(200) NOT NULL,
+                            ActionDate DATETIME NOT NULL DEFAULT GETDATE()
+                        )
+                    END";
+                ExecuteNonQuery(createTableQuery);
+            }
+            catch
+            {
+                // silently ignore – table may already exist
+            }
+        }
+
+        private void LogProductActivity(string actionType, string productName)
+        {
+            try
+            {
+                string query = @"
+                    INSERT INTO ProductActivityLog (ActionType, ProductName, ActionDate)
+                    VALUES (@ActionType, @ProductName, GETDATE())";
+
+                ExecuteNonQuery(query,
+                    new SqlParameter("@ActionType", actionType),
+                    new SqlParameter("@ProductName", productName));
+            }
+            catch
+            {
+                // silently ignore logging errors
+            }
+        }
+
+        // ── Report 5: Activity Log ──
+        private void LoadActivityLogReport()
+        {
+            SetActiveReportTab(btnReportActivity);
+            try
+            {
+                string query = @"
+                    SELECT 
+                        LogId AS [#],
+                        ActionType AS [Action],
+                        ProductName AS [Product Name],
+                        FORMAT(ActionDate, 'yyyy-MM-dd HH:mm') AS [Date/Time]
+                    FROM ProductActivityLog
+                    ORDER BY LogId DESC";
+
+                DataTable dt = ExecuteQuery(query);
+                dataGridViewReport.DataSource = dt;
+
+                // Count actions
+                int addCount = 0, updateCount = 0, deleteCount = 0;
+                foreach (DataRow row in dt.Rows)
+                {
+                    string action = row["Action"].ToString();
+                    if (action == "Add") addCount++;
+                    else if (action == "Update") updateCount++;
+                    else if (action == "Delete") deleteCount++;
+                }
+                lblReportSummary.Text = $"Total Activities: {dt.Rows.Count}   |   Added: {addCount}   |   Updated: {updateCount}   |   Deleted: {deleteCount}";
+
+                // Chart: Column chart of daily activity counts
+                reportChart.Series.Clear();
+                reportChart.ChartAreas[0].AxisX.Title = "Date";
+                reportChart.ChartAreas[0].AxisY.Title = "Actions";
+                reportChart.ChartAreas[0].AxisX.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+                reportChart.ChartAreas[0].AxisY.TitleFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+                // Query daily activity counts
+                string chartQuery = @"
+                    SELECT 
+                        FORMAT(ActionDate, 'MM-dd') AS [Day],
+                        SUM(CASE WHEN ActionType = 'Add' THEN 1 ELSE 0 END) AS [Added],
+                        SUM(CASE WHEN ActionType = 'Update' THEN 1 ELSE 0 END) AS [Updated],
+                        SUM(CASE WHEN ActionType = 'Delete' THEN 1 ELSE 0 END) AS [Deleted]
+                    FROM ProductActivityLog
+                    GROUP BY FORMAT(ActionDate, 'yyyy-MM-dd'), FORMAT(ActionDate, 'MM-dd')
+                    ORDER BY FORMAT(ActionDate, 'yyyy-MM-dd') ASC";
+
+                DataTable dtChart = ExecuteQuery(chartQuery);
+
+                Series seriesAdd = new Series("Added");
+                seriesAdd.ChartType = SeriesChartType.Column;
+                seriesAdd.Color = Color.FromArgb(34, 197, 94);
+                seriesAdd.BorderWidth = 0;
+
+                Series seriesUpdate = new Series("Updated");
+                seriesUpdate.ChartType = SeriesChartType.Column;
+                seriesUpdate.Color = Color.FromArgb(251, 191, 36);
+                seriesUpdate.BorderWidth = 0;
+
+                Series seriesDelete = new Series("Deleted");
+                seriesDelete.ChartType = SeriesChartType.Column;
+                seriesDelete.Color = Color.FromArgb(239, 68, 68);
+                seriesDelete.BorderWidth = 0;
+
+                foreach (DataRow row in dtChart.Rows)
+                {
+                    string day = row["Day"].ToString();
+                    seriesAdd.Points.AddXY(day, Convert.ToInt32(row["Added"]));
+                    seriesUpdate.Points.AddXY(day, Convert.ToInt32(row["Updated"]));
+                    seriesDelete.Points.AddXY(day, Convert.ToInt32(row["Deleted"]));
+                }
+
+                reportChart.Series.Add(seriesAdd);
+                reportChart.Series.Add(seriesUpdate);
+                reportChart.Series.Add(seriesDelete);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading activity log: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
