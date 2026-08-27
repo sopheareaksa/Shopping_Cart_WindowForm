@@ -66,16 +66,15 @@ namespace Shopping_Cart
                 lblUserName.Text = $"Hi, {UserName}";
             }
 
+            headerPanel.Resize += (s, ev) => ArrangeHeaderButtons();
             ArrangeHeaderButtons();
             LoadProducts();
         }
 
         private void ArrangeHeaderButtons()
         {
-            lblUserName.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
-            lblUserName.Width = 100;
+            int startX = 0;
 
-            int startX = lblUserName.Right + 10;
             if (IsAdmin)
             {
                 btnDashboard.Visible = true;
@@ -88,19 +87,32 @@ namespace Shopping_Cart
                 btnDashboard.Visible = false;
             }
 
-            btnLogout.Size = new Size(95, 42);
-            btnLogout.Location = new Point(startX, 2);
-            startX = btnLogout.Right + 8;
-
             btnMyOrders.Size = new Size(115, 42);
             btnMyOrders.Location = new Point(startX, 2);
             startX = btnMyOrders.Right + 8;
 
             btnCart.Size = new Size(85, 42);
             btnCart.Location = new Point(startX, 2);
+            startX = btnCart.Right + 12;
+
+            // Dynamically measure greeting text width
+            lblUserName.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblUserName.ForeColor = Color.White;
+            using (Graphics g = lblUserName.CreateGraphics())
+            {
+                SizeF size = g.MeasureString(lblUserName.Text, lblUserName.Font);
+                lblUserName.Width = Math.Max((int)size.Width + 10, 80);
+            }
+            lblUserName.Height = 42;
+            lblUserName.TextAlign = ContentAlignment.MiddleCenter;
+            lblUserName.Location = new Point(startX, 2);
+            startX = lblUserName.Right + 8;
+
+            btnLogout.Size = new Size(95, 42);
+            btnLogout.Location = new Point(startX, 2);
             lblCartCount.Visible = false;
 
-            panelHeaderActions.Width = btnCart.Right;
+            panelHeaderActions.Width = btnLogout.Right;
             panelHeaderActions.Left = headerPanel.Width - panelHeaderActions.Width - 25;
         }
 
