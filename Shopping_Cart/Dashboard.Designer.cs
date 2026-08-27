@@ -24,6 +24,7 @@ namespace Shopping_Cart
             this.lblTitle = new System.Windows.Forms.Label();
             this.bodyTable = new System.Windows.Forms.TableLayoutPanel();
             this.sidebarPanel = new System.Windows.Forms.Panel();
+            this.btnNavChatBot = new System.Windows.Forms.Button();
             this.btnNavSettings = new System.Windows.Forms.Button();
             this.btnNavCustomers = new System.Windows.Forms.Button();
             this.btnNavOrders = new System.Windows.Forms.Button();
@@ -50,6 +51,8 @@ namespace Shopping_Cart
             this.inputPanel = new System.Windows.Forms.Panel();
             this.txtCreatedAt = new System.Windows.Forms.TextBox();
             this.lblCreatedAt = new System.Windows.Forms.Label();
+            this.txtStock = new System.Windows.Forms.TextBox();
+            this.lblStock = new System.Windows.Forms.Label();
             this.txtImage4 = new System.Windows.Forms.TextBox();
             this.btnBrowseImage4 = new System.Windows.Forms.Button();
             this.lblImage4 = new System.Windows.Forms.Label();
@@ -80,6 +83,26 @@ namespace Shopping_Cart
             this.btnUpdate = new System.Windows.Forms.Button();
             this.btnAdd = new System.Windows.Forms.Button();
             this.lblCrudTitle = new System.Windows.Forms.Label();
+            this.aiPanel = new System.Windows.Forms.Panel();
+            this.aiTopPanel = new System.Windows.Forms.Panel();
+            this.lblAiTitle = new System.Windows.Forms.Label();
+            this.lblAiSubtitle = new System.Windows.Forms.Label();
+            this.lblAiModelTag = new System.Windows.Forms.Label();
+            this.cmbAiModel = new System.Windows.Forms.ComboBox();
+            this.lblAiStatus = new System.Windows.Forms.Label();
+            this.btnAiClear = new System.Windows.Forms.Button();
+            this.aiChipsPanel = new System.Windows.Forms.FlowLayoutPanel();
+            this.btnChipSales = new System.Windows.Forms.Button();
+            this.btnChipCustomers = new System.Windows.Forms.Button();
+            this.btnChipFindUser = new System.Windows.Forms.Button();
+            this.btnChipDiscounts = new System.Windows.Forms.Button();
+            this.btnChipRevenue = new System.Windows.Forms.Button();
+            this.btnChipLogs = new System.Windows.Forms.Button();
+            this.aiBottomInputPanel = new System.Windows.Forms.Panel();
+            this.txtAiInput = new System.Windows.Forms.TextBox();
+            this.btnAiSend = new System.Windows.Forms.Button();
+            this.chatScrollPanel = new System.Windows.Forms.Panel();
+            this.chatMessagesContainer = new System.Windows.Forms.FlowLayoutPanel();
             this.mainTable.SuspendLayout();
             this.headerPanel.SuspendLayout();
             this.bodyTable.SuspendLayout();
@@ -95,6 +118,11 @@ namespace Shopping_Cart
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewProducts)).BeginInit();
             this.inputPanel.SuspendLayout();
             this.crudTopPanel.SuspendLayout();
+            this.aiPanel.SuspendLayout();
+            this.aiTopPanel.SuspendLayout();
+            this.aiChipsPanel.SuspendLayout();
+            this.aiBottomInputPanel.SuspendLayout();
+            this.chatScrollPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // mainTable
@@ -173,6 +201,7 @@ namespace Shopping_Cart
             // sidebarPanel
             // 
             this.sidebarPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.sidebarPanel.Controls.Add(this.btnNavChatBot);
             this.sidebarPanel.Controls.Add(this.btnNavSettings);
             this.sidebarPanel.Controls.Add(this.btnNavCustomers);
             this.sidebarPanel.Controls.Add(this.btnNavOrders);
@@ -205,6 +234,25 @@ namespace Shopping_Cart
             this.btnNavSettings.Text = "  Reports";
             this.btnNavSettings.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.btnNavSettings.UseVisualStyleBackColor = false;
+            // 
+            // btnNavChatBot
+            // 
+            this.btnNavChatBot.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnNavChatBot.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnNavChatBot.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnNavChatBot.FlatAppearance.BorderSize = 0;
+            this.btnNavChatBot.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnNavChatBot.Font = new System.Drawing.Font("Segoe UI", 11F);
+            this.btnNavChatBot.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(235)))), ((int)(((byte)(230)))), ((int)(((byte)(250)))));
+            this.btnNavChatBot.Location = new System.Drawing.Point(20, 365);
+            this.btnNavChatBot.Margin = new System.Windows.Forms.Padding(0, 5, 0, 5);
+            this.btnNavChatBot.Name = "btnNavChatBot";
+            this.btnNavChatBot.Size = new System.Drawing.Size(210, 50);
+            this.btnNavChatBot.TabIndex = 6;
+            this.btnNavChatBot.Text = "  AI Assistant";
+            this.btnNavChatBot.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnNavChatBot.UseVisualStyleBackColor = false;
             // 
             // btnNavCustomers
             // 
@@ -298,6 +346,7 @@ namespace Shopping_Cart
             // 
             this.contentPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(246)))), ((int)(((byte)(250)))));
             this.contentPanel.Controls.Add(this.contentTable);
+            this.contentPanel.Controls.Add(this.aiPanel);
             this.contentPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.contentPanel.Location = new System.Drawing.Point(250, 0);
             this.contentPanel.Margin = new System.Windows.Forms.Padding(0);
@@ -542,6 +591,8 @@ namespace Shopping_Cart
             this.inputPanel.Controls.Add(this.txtImage1);
             this.inputPanel.Controls.Add(this.btnBrowseImage1);
             this.inputPanel.Controls.Add(this.lblImage1);
+            this.inputPanel.Controls.Add(this.txtStock);
+            this.inputPanel.Controls.Add(this.lblStock);
             this.inputPanel.Controls.Add(this.txtSpecialOffer);
             this.inputPanel.Controls.Add(this.lblSpecialOffer);
             this.inputPanel.Controls.Add(this.txtDiscount);
@@ -566,10 +617,10 @@ namespace Shopping_Cart
             this.txtCreatedAt.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtCreatedAt.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtCreatedAt.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(33)))), ((int)(((byte)(71)))));
-            this.txtCreatedAt.Location = new System.Drawing.Point(700, 110);
+            this.txtCreatedAt.Location = new System.Drawing.Point(675, 110);
             this.txtCreatedAt.Name = "txtCreatedAt";
             this.txtCreatedAt.ReadOnly = true;
-            this.txtCreatedAt.Size = new System.Drawing.Size(220, 23);
+            this.txtCreatedAt.Size = new System.Drawing.Size(245, 23);
             this.txtCreatedAt.TabIndex = 25;
             // 
             // lblCreatedAt
@@ -577,7 +628,7 @@ namespace Shopping_Cart
             this.lblCreatedAt.AutoSize = true;
             this.lblCreatedAt.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblCreatedAt.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(75)))), ((int)(((byte)(63)))), ((int)(((byte)(114)))));
-            this.lblCreatedAt.Location = new System.Drawing.Point(700, 85);
+            this.lblCreatedAt.Location = new System.Drawing.Point(675, 85);
             this.lblCreatedAt.Name = "lblCreatedAt";
             this.lblCreatedAt.Size = new System.Drawing.Size(84, 20);
             this.lblCreatedAt.TabIndex = 24;
@@ -739,26 +790,48 @@ namespace Shopping_Cart
             this.lblImage1.TabIndex = 12;
             this.lblImage1.Text = "Image 1";
             // 
+            // txtStock
+            // 
+            this.txtStock.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(247)))), ((int)(((byte)(252)))));
+            this.txtStock.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.txtStock.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.txtStock.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(33)))), ((int)(((byte)(71)))));
+            this.txtStock.Location = new System.Drawing.Point(530, 110);
+            this.txtStock.Name = "txtStock";
+            this.txtStock.Size = new System.Drawing.Size(130, 23);
+            this.txtStock.TabIndex = 11;
+            // 
+            // lblStock
+            // 
+            this.lblStock.AutoSize = true;
+            this.lblStock.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblStock.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(75)))), ((int)(((byte)(63)))), ((int)(((byte)(114)))));
+            this.lblStock.Location = new System.Drawing.Point(530, 85);
+            this.lblStock.Name = "lblStock";
+            this.lblStock.Size = new System.Drawing.Size(48, 20);
+            this.lblStock.TabIndex = 10;
+            this.lblStock.Text = "Stock";
+            // 
             // txtSpecialOffer
             // 
             this.txtSpecialOffer.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(247)))), ((int)(((byte)(252)))));
             this.txtSpecialOffer.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtSpecialOffer.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtSpecialOffer.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(33)))), ((int)(((byte)(71)))));
-            this.txtSpecialOffer.Location = new System.Drawing.Point(490, 110);
+            this.txtSpecialOffer.Location = new System.Drawing.Point(245, 110);
             this.txtSpecialOffer.Name = "txtSpecialOffer";
-            this.txtSpecialOffer.Size = new System.Drawing.Size(170, 23);
-            this.txtSpecialOffer.TabIndex = 11;
+            this.txtSpecialOffer.Size = new System.Drawing.Size(115, 23);
+            this.txtSpecialOffer.TabIndex = 9;
             // 
             // lblSpecialOffer
             // 
             this.lblSpecialOffer.AutoSize = true;
             this.lblSpecialOffer.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblSpecialOffer.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(75)))), ((int)(((byte)(63)))), ((int)(((byte)(114)))));
-            this.lblSpecialOffer.Location = new System.Drawing.Point(490, 85);
+            this.lblSpecialOffer.Location = new System.Drawing.Point(245, 85);
             this.lblSpecialOffer.Name = "lblSpecialOffer";
             this.lblSpecialOffer.Size = new System.Drawing.Size(115, 20);
-            this.lblSpecialOffer.TabIndex = 10;
+            this.lblSpecialOffer.TabIndex = 8;
             this.lblSpecialOffer.Text = "Special Offer %";
             // 
             // txtDiscount
@@ -767,21 +840,21 @@ namespace Shopping_Cart
             this.txtDiscount.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.txtDiscount.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.txtDiscount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(33)))), ((int)(((byte)(71)))));
-            this.txtDiscount.Location = new System.Drawing.Point(290, 110);
+            this.txtDiscount.Location = new System.Drawing.Point(375, 110);
             this.txtDiscount.Name = "txtDiscount";
             this.txtDiscount.ReadOnly = true;
-            this.txtDiscount.Size = new System.Drawing.Size(170, 23);
-            this.txtDiscount.TabIndex = 9;
+            this.txtDiscount.Size = new System.Drawing.Size(140, 23);
+            this.txtDiscount.TabIndex = 7;
             // 
             // lblDiscount
             // 
             this.lblDiscount.AutoSize = true;
             this.lblDiscount.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblDiscount.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(75)))), ((int)(((byte)(63)))), ((int)(((byte)(114)))));
-            this.lblDiscount.Location = new System.Drawing.Point(290, 85);
+            this.lblDiscount.Location = new System.Drawing.Point(375, 85);
             this.lblDiscount.Name = "lblDiscount";
             this.lblDiscount.Size = new System.Drawing.Size(150, 20);
-            this.lblDiscount.TabIndex = 8;
+            this.lblDiscount.TabIndex = 6;
             this.lblDiscount.Text = "Price After Discount";
             // 
             // txtPrice
@@ -792,8 +865,8 @@ namespace Shopping_Cart
             this.txtPrice.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(33)))), ((int)(((byte)(71)))));
             this.txtPrice.Location = new System.Drawing.Point(120, 110);
             this.txtPrice.Name = "txtPrice";
-            this.txtPrice.Size = new System.Drawing.Size(150, 23);
-            this.txtPrice.TabIndex = 7;
+            this.txtPrice.Size = new System.Drawing.Size(110, 23);
+            this.txtPrice.TabIndex = 5;
             // 
             // lblPrice
             // 
@@ -803,7 +876,7 @@ namespace Shopping_Cart
             this.lblPrice.Location = new System.Drawing.Point(120, 85);
             this.lblPrice.Name = "lblPrice";
             this.lblPrice.Size = new System.Drawing.Size(43, 20);
-            this.lblPrice.TabIndex = 6;
+            this.lblPrice.TabIndex = 4;
             this.lblPrice.Text = "Price";
             // 
             // cmbCategory
@@ -1009,8 +1082,341 @@ namespace Shopping_Cart
             this.inputPanel.PerformLayout();
             this.crudTopPanel.ResumeLayout(false);
             this.crudTopPanel.PerformLayout();
-            this.ResumeLayout(false);
 
+            // 
+            // aiPanel
+            // 
+            this.aiPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
+            this.aiPanel.Controls.Add(this.chatScrollPanel);
+            this.aiPanel.Controls.Add(this.aiBottomInputPanel);
+            this.aiPanel.Controls.Add(this.aiChipsPanel);
+            this.aiPanel.Controls.Add(this.aiTopPanel);
+            this.aiPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.aiPanel.Location = new System.Drawing.Point(0, 0);
+            this.aiPanel.Margin = new System.Windows.Forms.Padding(0);
+            this.aiPanel.Name = "aiPanel";
+            this.aiPanel.Size = new System.Drawing.Size(1050, 830);
+            this.aiPanel.TabIndex = 2;
+            this.aiPanel.Visible = false;
+
+            // 
+            // aiTopPanel
+            // 
+            this.aiTopPanel.BackColor = System.Drawing.Color.White;
+            this.aiTopPanel.Controls.Add(this.btnAiClear);
+            this.aiTopPanel.Controls.Add(this.lblAiStatus);
+            this.aiTopPanel.Controls.Add(this.cmbAiModel);
+            this.aiTopPanel.Controls.Add(this.lblAiModelTag);
+            this.aiTopPanel.Controls.Add(this.lblAiSubtitle);
+            this.aiTopPanel.Controls.Add(this.lblAiTitle);
+            this.aiTopPanel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.aiTopPanel.Height = 65;
+            this.aiTopPanel.Location = new System.Drawing.Point(0, 0);
+            this.aiTopPanel.Name = "aiTopPanel";
+            this.aiTopPanel.Padding = new System.Windows.Forms.Padding(20, 10, 20, 10);
+            this.aiTopPanel.Size = new System.Drawing.Size(1050, 65);
+            this.aiTopPanel.TabIndex = 0;
+
+            // 
+            // lblAiTitle
+            // 
+            this.lblAiTitle.AutoSize = true;
+            this.lblAiTitle.Font = new System.Drawing.Font("Segoe UI", 14F, System.Drawing.FontStyle.Bold);
+            this.lblAiTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(41)))), ((int)(((byte)(59)))));
+            this.lblAiTitle.Location = new System.Drawing.Point(15, 10);
+            this.lblAiTitle.Name = "lblAiTitle";
+            this.lblAiTitle.Size = new System.Drawing.Size(260, 32);
+            this.lblAiTitle.TabIndex = 0;
+            this.lblAiTitle.Text = "🤖 Admin AI Assistant";
+
+            // 
+            // lblAiSubtitle
+            // 
+            this.lblAiSubtitle.AutoSize = true;
+            this.lblAiSubtitle.Font = new System.Drawing.Font("Segoe UI", 8.5F);
+            this.lblAiSubtitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(100)))), ((int)(((byte)(116)))), ((int)(((byte)(139)))));
+            this.lblAiSubtitle.Location = new System.Drawing.Point(17, 38);
+            this.lblAiSubtitle.Name = "lblAiSubtitle";
+            this.lblAiSubtitle.Size = new System.Drawing.Size(350, 19);
+            this.lblAiSubtitle.TabIndex = 1;
+            this.lblAiSubtitle.Text = "Live Groq AI Database Analytics & Calculation Engine";
+
+            // 
+            // lblAiModelTag
+            // 
+            this.lblAiModelTag.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblAiModelTag.AutoSize = true;
+            this.lblAiModelTag.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblAiModelTag.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
+            this.lblAiModelTag.Location = new System.Drawing.Point(620, 22);
+            this.lblAiModelTag.Name = "lblAiModelTag";
+            this.lblAiModelTag.Size = new System.Drawing.Size(57, 20);
+            this.lblAiModelTag.TabIndex = 2;
+            this.lblAiModelTag.Text = "Model:";
+
+            // 
+            // cmbAiModel
+            // 
+            this.cmbAiModel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.cmbAiModel.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbAiModel.Font = new System.Drawing.Font("Segoe UI", 9F);
+            this.cmbAiModel.FormattingEnabled = true;
+            this.cmbAiModel.Items.AddRange(new object[] {
+            "openai/gpt-oss-120b",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-20b"});
+            this.cmbAiModel.Location = new System.Drawing.Point(675, 18);
+            this.cmbAiModel.Name = "cmbAiModel";
+            this.cmbAiModel.Size = new System.Drawing.Size(160, 28);
+            this.cmbAiModel.TabIndex = 3;
+
+            // 
+            // lblAiStatus
+            // 
+            this.lblAiStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblAiStatus.AutoSize = true;
+            this.lblAiStatus.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.lblAiStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(22)))), ((int)(((byte)(163)))), ((int)(((byte)(74)))));
+            this.lblAiStatus.Location = new System.Drawing.Point(850, 22);
+            this.lblAiStatus.Name = "lblAiStatus";
+            this.lblAiStatus.Size = new System.Drawing.Size(70, 20);
+            this.lblAiStatus.TabIndex = 4;
+            this.lblAiStatus.Text = "🟢 Ready";
+
+            // 
+            // btnAiClear
+            // 
+            this.btnAiClear.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnAiClear.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(241)))), ((int)(((byte)(245)))), ((int)(((byte)(249)))));
+            this.btnAiClear.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnAiClear.FlatAppearance.BorderSize = 0;
+            this.btnAiClear.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAiClear.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnAiClear.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(71)))), ((int)(((byte)(85)))), ((int)(((byte)(105)))));
+            this.btnAiClear.Location = new System.Drawing.Point(940, 16);
+            this.btnAiClear.Name = "btnAiClear";
+            this.btnAiClear.Size = new System.Drawing.Size(75, 32);
+            this.btnAiClear.TabIndex = 5;
+            this.btnAiClear.Text = "🧹 Clear";
+            this.btnAiClear.UseVisualStyleBackColor = false;
+
+            // 
+            // aiChipsPanel
+            // 
+            this.aiChipsPanel.AutoScroll = true;
+            this.aiChipsPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
+            this.aiChipsPanel.Controls.Add(this.btnChipSales);
+            this.aiChipsPanel.Controls.Add(this.btnChipCustomers);
+            this.aiChipsPanel.Controls.Add(this.btnChipFindUser);
+            this.aiChipsPanel.Controls.Add(this.btnChipDiscounts);
+            this.aiChipsPanel.Controls.Add(this.btnChipRevenue);
+            this.aiChipsPanel.Controls.Add(this.btnChipLogs);
+            this.aiChipsPanel.Dock = System.Windows.Forms.DockStyle.Top;
+            this.aiChipsPanel.Height = 44;
+            this.aiChipsPanel.Location = new System.Drawing.Point(0, 65);
+            this.aiChipsPanel.Name = "aiChipsPanel";
+            this.aiChipsPanel.Padding = new System.Windows.Forms.Padding(15, 6, 15, 6);
+            this.aiChipsPanel.Size = new System.Drawing.Size(1050, 44);
+            this.aiChipsPanel.TabIndex = 1;
+            this.aiChipsPanel.WrapContents = false;
+
+            // 
+            // btnChipSales
+            // 
+            this.btnChipSales.AutoSize = true;
+            this.btnChipSales.BackColor = System.Drawing.Color.White;
+            this.btnChipSales.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnChipSales.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(221)))), ((int)(((byte)(214)))), ((int)(((byte)(254)))));
+            this.btnChipSales.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnChipSales.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnChipSales.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnChipSales.Location = new System.Drawing.Point(15, 6);
+            this.btnChipSales.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnChipSales.Name = "btnChipSales";
+            this.btnChipSales.Padding = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.btnChipSales.Size = new System.Drawing.Size(155, 32);
+            this.btnChipSales.TabIndex = 0;
+            this.btnChipSales.Text = "💰 Sales Breakdown";
+            this.btnChipSales.UseVisualStyleBackColor = false;
+
+            // 
+            // btnChipCustomers
+            // 
+            this.btnChipCustomers.AutoSize = true;
+            this.btnChipCustomers.BackColor = System.Drawing.Color.White;
+            this.btnChipCustomers.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnChipCustomers.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(221)))), ((int)(((byte)(214)))), ((int)(((byte)(254)))));
+            this.btnChipCustomers.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnChipCustomers.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnChipCustomers.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnChipCustomers.Location = new System.Drawing.Point(178, 6);
+            this.btnChipCustomers.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnChipCustomers.Name = "btnChipCustomers";
+            this.btnChipCustomers.Padding = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.btnChipCustomers.Size = new System.Drawing.Size(155, 32);
+            this.btnChipCustomers.TabIndex = 1;
+            this.btnChipCustomers.Text = "👑 Top 5 Customers";
+            this.btnChipCustomers.UseVisualStyleBackColor = false;
+
+            // 
+            // btnChipFindUser
+            // 
+            this.btnChipFindUser.AutoSize = true;
+            this.btnChipFindUser.BackColor = System.Drawing.Color.White;
+            this.btnChipFindUser.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnChipFindUser.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(221)))), ((int)(((byte)(214)))), ((int)(((byte)(254)))));
+            this.btnChipFindUser.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnChipFindUser.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnChipFindUser.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnChipFindUser.Location = new System.Drawing.Point(341, 6);
+            this.btnChipFindUser.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnChipFindUser.Name = "btnChipFindUser";
+            this.btnChipFindUser.Padding = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.btnChipFindUser.Size = new System.Drawing.Size(140, 32);
+            this.btnChipFindUser.TabIndex = 2;
+            this.btnChipFindUser.Text = "🔍 Find Customer";
+            this.btnChipFindUser.UseVisualStyleBackColor = false;
+
+            // 
+            // btnChipDiscounts
+            // 
+            this.btnChipDiscounts.AutoSize = true;
+            this.btnChipDiscounts.BackColor = System.Drawing.Color.White;
+            this.btnChipDiscounts.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnChipDiscounts.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(221)))), ((int)(((byte)(214)))), ((int)(((byte)(254)))));
+            this.btnChipDiscounts.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnChipDiscounts.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnChipDiscounts.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnChipDiscounts.Location = new System.Drawing.Point(489, 6);
+            this.btnChipDiscounts.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnChipDiscounts.Name = "btnChipDiscounts";
+            this.btnChipDiscounts.Padding = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.btnChipDiscounts.Size = new System.Drawing.Size(160, 32);
+            this.btnChipDiscounts.TabIndex = 3;
+            this.btnChipDiscounts.Text = "📦 Discounted Items";
+            this.btnChipDiscounts.UseVisualStyleBackColor = false;
+
+            // 
+            // btnChipRevenue
+            // 
+            this.btnChipRevenue.AutoSize = true;
+            this.btnChipRevenue.BackColor = System.Drawing.Color.White;
+            this.btnChipRevenue.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnChipRevenue.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(221)))), ((int)(((byte)(214)))), ((int)(((byte)(254)))));
+            this.btnChipRevenue.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnChipRevenue.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnChipRevenue.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnChipRevenue.Location = new System.Drawing.Point(657, 6);
+            this.btnChipRevenue.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnChipRevenue.Name = "btnChipRevenue";
+            this.btnChipRevenue.Padding = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.btnChipRevenue.Size = new System.Drawing.Size(155, 32);
+            this.btnChipRevenue.TabIndex = 4;
+            this.btnChipRevenue.Text = "📈 Monthly Revenue";
+            this.btnChipRevenue.UseVisualStyleBackColor = false;
+
+            // 
+            // btnChipLogs
+            // 
+            this.btnChipLogs.AutoSize = true;
+            this.btnChipLogs.BackColor = System.Drawing.Color.White;
+            this.btnChipLogs.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnChipLogs.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(221)))), ((int)(((byte)(214)))), ((int)(((byte)(254)))));
+            this.btnChipLogs.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnChipLogs.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
+            this.btnChipLogs.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnChipLogs.Location = new System.Drawing.Point(820, 6);
+            this.btnChipLogs.Margin = new System.Windows.Forms.Padding(0, 0, 8, 0);
+            this.btnChipLogs.Name = "btnChipLogs";
+            this.btnChipLogs.Padding = new System.Windows.Forms.Padding(8, 0, 8, 0);
+            this.btnChipLogs.Size = new System.Drawing.Size(140, 32);
+            this.btnChipLogs.TabIndex = 5;
+            this.btnChipLogs.Text = "⚡ Activity Logs";
+            this.btnChipLogs.UseVisualStyleBackColor = false;
+
+            // 
+            // aiBottomInputPanel
+            // 
+            this.aiBottomInputPanel.BackColor = System.Drawing.Color.White;
+            this.aiBottomInputPanel.Controls.Add(this.btnAiSend);
+            this.aiBottomInputPanel.Controls.Add(this.txtAiInput);
+            this.aiBottomInputPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.aiBottomInputPanel.Height = 85;
+            this.aiBottomInputPanel.Location = new System.Drawing.Point(0, 745);
+            this.aiBottomInputPanel.Name = "aiBottomInputPanel";
+            this.aiBottomInputPanel.Padding = new System.Windows.Forms.Padding(20, 12, 20, 12);
+            this.aiBottomInputPanel.Size = new System.Drawing.Size(1050, 85);
+            this.aiBottomInputPanel.TabIndex = 2;
+
+            // 
+            // txtAiInput
+            // 
+            this.txtAiInput.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtAiInput.Font = new System.Drawing.Font("Segoe UI", 10.5F);
+            this.txtAiInput.Location = new System.Drawing.Point(20, 12);
+            this.txtAiInput.Multiline = true;
+            this.txtAiInput.Name = "txtAiInput";
+            this.txtAiInput.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtAiInput.Size = new System.Drawing.Size(890, 60);
+            this.txtAiInput.TabIndex = 0;
+
+            // 
+            // btnAiSend
+            // 
+            this.btnAiSend.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnAiSend.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(91)))), ((int)(((byte)(68)))), ((int)(((byte)(149)))));
+            this.btnAiSend.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.btnAiSend.FlatAppearance.BorderSize = 0;
+            this.btnAiSend.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAiSend.Font = new System.Drawing.Font("Segoe UI", 10.5F, System.Drawing.FontStyle.Bold);
+            this.btnAiSend.ForeColor = System.Drawing.Color.White;
+            this.btnAiSend.Location = new System.Drawing.Point(920, 12);
+            this.btnAiSend.Name = "btnAiSend";
+            this.btnAiSend.Size = new System.Drawing.Size(100, 60);
+            this.btnAiSend.TabIndex = 1;
+            this.btnAiSend.Text = "🚀 Send";
+            this.btnAiSend.UseVisualStyleBackColor = false;
+
+            // 
+            // chatScrollPanel
+            // 
+            this.chatScrollPanel.AutoScroll = true;
+            this.chatScrollPanel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
+            this.chatScrollPanel.Controls.Add(this.chatMessagesContainer);
+            this.chatScrollPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.chatScrollPanel.Location = new System.Drawing.Point(0, 109);
+            this.chatScrollPanel.Name = "chatScrollPanel";
+            this.chatScrollPanel.Padding = new System.Windows.Forms.Padding(20, 10, 20, 10);
+            this.chatScrollPanel.Size = new System.Drawing.Size(1050, 636);
+            this.chatScrollPanel.TabIndex = 3;
+
+            // 
+            // chatMessagesContainer
+            // 
+            this.chatMessagesContainer.AutoSize = true;
+            this.chatMessagesContainer.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.chatMessagesContainer.BackColor = System.Drawing.Color.Transparent;
+            this.chatMessagesContainer.Dock = System.Windows.Forms.DockStyle.Top;
+            this.chatMessagesContainer.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.chatMessagesContainer.Location = new System.Drawing.Point(20, 10);
+            this.chatMessagesContainer.Name = "chatMessagesContainer";
+            this.chatMessagesContainer.Size = new System.Drawing.Size(1010, 0);
+            this.chatMessagesContainer.TabIndex = 0;
+            this.chatMessagesContainer.WrapContents = false;
+
+            this.chatScrollPanel.ResumeLayout(false);
+            this.chatScrollPanel.PerformLayout();
+            this.aiBottomInputPanel.ResumeLayout(false);
+            this.aiBottomInputPanel.PerformLayout();
+            this.aiChipsPanel.ResumeLayout(false);
+            this.aiChipsPanel.PerformLayout();
+            this.aiTopPanel.ResumeLayout(false);
+            this.aiTopPanel.PerformLayout();
+            this.aiPanel.ResumeLayout(false);
+            this.ResumeLayout(false);
         }
 
         #endregion
@@ -1027,6 +1433,7 @@ namespace Shopping_Cart
         private System.Windows.Forms.Button btnNavOrders;
         private System.Windows.Forms.Button btnNavCustomers;
         private System.Windows.Forms.Button btnNavSettings;
+        private System.Windows.Forms.Button btnNavChatBot;
         private System.Windows.Forms.Panel contentPanel;
         private System.Windows.Forms.TableLayoutPanel contentTable;
         private System.Windows.Forms.TableLayoutPanel cardsTable;
@@ -1063,6 +1470,8 @@ namespace Shopping_Cart
         private System.Windows.Forms.TextBox txtDiscount;
         private System.Windows.Forms.Label lblSpecialOffer;
         private System.Windows.Forms.TextBox txtSpecialOffer;
+        private System.Windows.Forms.Label lblStock;
+        private System.Windows.Forms.TextBox txtStock;
         private System.Windows.Forms.Label lblImage1;
         private System.Windows.Forms.TextBox txtImage1;
         private System.Windows.Forms.Button btnBrowseImage1;
@@ -1077,5 +1486,25 @@ namespace Shopping_Cart
         private System.Windows.Forms.Button btnBrowseImage4;
         private System.Windows.Forms.Label lblCreatedAt;
         private System.Windows.Forms.TextBox txtCreatedAt;
+        private System.Windows.Forms.Panel aiPanel;
+        private System.Windows.Forms.Panel aiTopPanel;
+        private System.Windows.Forms.Label lblAiTitle;
+        private System.Windows.Forms.Label lblAiSubtitle;
+        private System.Windows.Forms.Label lblAiModelTag;
+        private System.Windows.Forms.ComboBox cmbAiModel;
+        private System.Windows.Forms.Label lblAiStatus;
+        private System.Windows.Forms.Button btnAiClear;
+        private System.Windows.Forms.FlowLayoutPanel aiChipsPanel;
+        private System.Windows.Forms.Button btnChipSales;
+        private System.Windows.Forms.Button btnChipCustomers;
+        private System.Windows.Forms.Button btnChipFindUser;
+        private System.Windows.Forms.Button btnChipDiscounts;
+        private System.Windows.Forms.Button btnChipRevenue;
+        private System.Windows.Forms.Button btnChipLogs;
+        private System.Windows.Forms.Panel aiBottomInputPanel;
+        private System.Windows.Forms.TextBox txtAiInput;
+        private System.Windows.Forms.Button btnAiSend;
+        private System.Windows.Forms.Panel chatScrollPanel;
+        private System.Windows.Forms.FlowLayoutPanel chatMessagesContainer;
     }
 }

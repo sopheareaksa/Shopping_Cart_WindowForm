@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using Microsoft.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace Shopping_Cart
 {
@@ -33,6 +34,12 @@ namespace Shopping_Cart
         private Button btnReportCustomers;
         private Button btnReportActivity;
         private Chart reportChart;
+
+        // AI Chatbot fields and services
+        private bool isChatBotView = false;
+        private Panel typingIndicatorPanel;
+        private Label lblTypingText;
+        private GroqChatService chatService;
 
         private string GetConnectionString()
         {
@@ -88,21 +95,75 @@ namespace Shopping_Cart
             EnsureActivityLogTable();
             LoadProducts();
 
+            // Initialize Groq AI Chat Service
+            chatService = new GroqChatService(GetConnectionString());
+
             // Wire up auto-calculation events
             txtPrice.TextChanged += (s, ev) => CalculateFinalPrice();
             txtSpecialOffer.TextChanged += (s, ev) => CalculateFinalPrice();
-            // Wire orders, customers, and reports navigation
+            // Wire orders, customers, reports, and AI assistant navigation
             btnNavOrders.Click += (s, ev) => BtnNavOrders_Click(s, ev);
             btnNavCustomers.Click += (s, ev) => BtnNavCustomers_Click(s, ev);
             btnNavDashboard.Click += (s, ev) => BtnNavDashboard_Click(s, ev);
             btnNavSettings.Click += (s, ev) => BtnNavReports_Click(s, ev);
+            btnNavChatBot.Click += (s, ev) => BtnNavChatBot_Click(s, ev);
+
+            // Wire AI ChatBot controls events
+            cmbAiModel.SelectedIndexChanged += (s, ev) =>
+            {
+                if (chatService != null && cmbAiModel.SelectedItem != null)
+                {
+                    chatService.SelectedModel = cmbAiModel.SelectedItem.ToString();
+                }
+            };
+
+            btnAiClear.Click += (s, ev) =>
+            {
+                if (chatService != null)
+                {
+                    chatService.ResetConversation();
+                }
+                chatMessagesContainer.Controls.Clear();
+                AddWelcomeMessage();
+            };
+
+            btnAiSend.Click += (s, ev) => _ = SendAiMessageAsync();
+
+            txtAiInput.KeyDown += (s, ev) =>
+            {
+                if (ev.KeyCode == Keys.Enter && !ev.Shift)
+                {
+                    ev.SuppressKeyPress = true;
+                    _ = SendAiMessageAsync();
+                }
+            };
+
+            // Wire quick chip buttons
+            btnChipSales.Click += (s, ev) => RunQuickChipPrompt("Calculate total sales amount, grouped by Paid, Pending, and Cancelled orders.");
+            btnChipCustomers.Click += (s, ev) => RunQuickChipPrompt("Find the top 5 customers with the highest spending, showing their names, emails, and order counts.");
+            btnChipFindUser.Click += (s, ev) => RunQuickChipPrompt("Show me customer user accounts and their total order spending.");
+            btnChipDiscounts.Click += (s, ev) => RunQuickChipPrompt("List all products currently having a discount or special offer.");
+            btnChipRevenue.Click += (s, ev) => RunQuickChipPrompt("Calculate our monthly revenue summary for Paid orders.");
+            btnChipLogs.Click += (s, ev) => RunQuickChipPrompt("Show the latest 10 product activity log actions.");
+
+            // Add resize listener for responsive chat messages container
+            aiPanel.Resize += (s, ev) =>
+            {
+                if (chatMessagesContainer != null && chatScrollPanel != null)
+                {
+                    chatMessagesContainer.Width = chatScrollPanel.ClientSize.Width - 25;
+                }
+            };
+
+            // Initial welcome message
+            AddWelcomeMessage();
 
             // default active nav
             SetActiveNavButton(btnNavDashboard);
 
             dataGridViewProducts.DataBindingComplete += (s, ev) =>
             {
-                if (!isOrdersView && !isCustomersView)
+                if (!isOrdersView && !isCustomersView && !isReportsView && !isChatBotView)
                 {
                     HideProductImageColumns();
                 }
@@ -118,7 +179,7 @@ namespace Shopping_Cart
             {
                 string query = @"
                     SELECT ProductId, ProductName, Category, Price, Discount,
-                           SpecialOffer, Image1, Image2, Image3, Image4, CreatedAt
+                           SpecialOffer, Stock, Image1, Image2, Image3, Image4, CreatedAt
                     FROM Products
                     ORDER BY ProductId DESC";
 
@@ -220,9 +281,9 @@ namespace Shopping_Cart
             try
             {
                 string query = @"
-                    INSERT INTO Products (ProductName, Category, Price, Discount, SpecialOffer,
+                    INSERT INTO Products (ProductName, Category, Price, Discount, SpecialOffer, Stock,
                                           Image1, Image2, Image3, Image4, CreatedAt)
-                    VALUES (@ProductName, @Category, @Price, @Discount, @SpecialOffer,
+                    VALUES (@ProductName, @Category, @Price, @Discount, @SpecialOffer, @Stock,
                             @Image1, @Image2, @Image3, @Image4, GETDATE())";
 
                 SqlParameter[] parameters =
@@ -232,6 +293,7 @@ namespace Shopping_Cart
                     new SqlParameter("@Price", decimal.Parse(txtPrice.Text.Trim())),
                     new SqlParameter("@Discount", string.IsNullOrWhiteSpace(txtDiscount.Text) ? 0 : decimal.Parse(txtDiscount.Text.Trim())),
                     new SqlParameter("@SpecialOffer", string.IsNullOrWhiteSpace(txtSpecialOffer.Text) ? 0 : int.Parse(txtSpecialOffer.Text.Trim())),
+                    new SqlParameter("@Stock", string.IsNullOrWhiteSpace(txtStock.Text) ? 0 : int.Parse(txtStock.Text.Trim())),
                     new SqlParameter("@Image1", txtImage1.Text.Trim()),
                     new SqlParameter("@Image2", txtImage2.Text.Trim()),
                     new SqlParameter("@Image3", txtImage3.Text.Trim()),
@@ -274,6 +336,7 @@ namespace Shopping_Cart
                         Price = @Price,
                         Discount = @Discount,
                         SpecialOffer = @SpecialOffer,
+                        Stock = @Stock,
                         Image1 = @Image1,
                         Image2 = @Image2,
                         Image3 = @Image3,
@@ -288,6 +351,7 @@ namespace Shopping_Cart
                     new SqlParameter("@Price", decimal.Parse(txtPrice.Text.Trim())),
                     new SqlParameter("@Discount", string.IsNullOrWhiteSpace(txtDiscount.Text) ? 0 : decimal.Parse(txtDiscount.Text.Trim())),
                     new SqlParameter("@SpecialOffer", string.IsNullOrWhiteSpace(txtSpecialOffer.Text) ? 0 : int.Parse(txtSpecialOffer.Text.Trim())),
+                    new SqlParameter("@Stock", string.IsNullOrWhiteSpace(txtStock.Text) ? 0 : int.Parse(txtStock.Text.Trim())),
                     new SqlParameter("@Image1", txtImage1.Text.Trim()),
                     new SqlParameter("@Image2", txtImage2.Text.Trim()),
                     new SqlParameter("@Image3", txtImage3.Text.Trim()),
@@ -381,6 +445,7 @@ namespace Shopping_Cart
             txtPrice.Clear();
             txtSpecialOffer.Clear();
             txtDiscount.Clear();
+            txtStock.Clear();
             txtImage1.Clear();
             txtImage2.Clear();
             txtImage3.Clear();
@@ -441,6 +506,7 @@ namespace Shopping_Cart
             txtPrice.Text = row.Cells["Price"].Value?.ToString();
             txtSpecialOffer.Text = row.Cells["SpecialOffer"].Value?.ToString();
             txtDiscount.Text = row.Cells["Discount"].Value?.ToString();
+            txtStock.Text = row.Cells["Stock"].Value != null ? row.Cells["Stock"].Value.ToString() : "0";
             txtImage1.Text = row.Cells["Image1"].Value?.ToString();
             txtImage2.Text = row.Cells["Image2"].Value?.ToString();
             txtImage3.Text = row.Cells["Image3"].Value?.ToString();
@@ -478,6 +544,14 @@ namespace Shopping_Cart
                 MessageBox.Show("Please enter a valid special offer percentage (0-100).", "Validation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtSpecialOffer.Focus();
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(txtStock.Text) && (!int.TryParse(txtStock.Text.Trim(), out int stock) || stock < 0))
+            {
+                MessageBox.Show("Please enter a valid stock quantity (0 or greater).", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtStock.Focus();
                 return false;
             }
 
@@ -519,7 +593,7 @@ namespace Shopping_Cart
             Color defaultBack = Color.FromArgb(91, 68, 149);
             Color defaultFore = Color.FromArgb(235, 230, 250);
 
-            Button[] navs = { btnNavDashboard, btnNavProducts, btnNavOrders, btnNavCustomers, btnNavSettings };
+            Button[] navs = { btnNavDashboard, btnNavProducts, btnNavOrders, btnNavCustomers, btnNavSettings, btnNavChatBot };
             foreach (var b in navs)
             {
                 if (b == null) continue;
@@ -543,7 +617,9 @@ namespace Shopping_Cart
             isOrdersView = true;
             isCustomersView = false;
             isReportsView = false;
+            isChatBotView = false;
             HideReportsPanel();
+            HideAiPanel();
             contentTable.Visible = true;
             ShowOrdersList();
         }
@@ -554,7 +630,9 @@ namespace Shopping_Cart
             isCustomersView = true;
             isOrdersView = false;
             isReportsView = false;
+            isChatBotView = false;
             HideReportsPanel();
+            HideAiPanel();
             contentTable.Visible = true;
             ShowCustomersList();
         }
@@ -565,7 +643,9 @@ namespace Shopping_Cart
             isOrdersView = false;
             isCustomersView = false;
             isReportsView = false;
+            isChatBotView = false;
             HideReportsPanel();
+            HideAiPanel();
             contentTable.Visible = true;
             // restore product management view
             inputPanel.Visible = true;
@@ -757,6 +837,8 @@ namespace Shopping_Cart
             isOrdersView = false;
             isCustomersView = false;
             isReportsView = true;
+            isChatBotView = false;
+            HideAiPanel();
 
             // hide the default content (cards + crud)
             contentTable.Visible = false;
@@ -1322,5 +1404,256 @@ namespace Shopping_Cart
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        // =========================================================================
+        // AI ChatBot Assistant (Groq LLaMA / GPT-OSS Database Analytics)
+        // =========================================================================
+
+        private void BtnNavChatBot_Click(object sender, EventArgs e)
+        {
+            SetActiveNavButton(btnNavChatBot);
+            isOrdersView = false;
+            isCustomersView = false;
+            isReportsView = false;
+            isChatBotView = true;
+
+            // Hide cards + CRUD and reports
+            contentTable.Visible = false;
+            HideReportsPanel();
+
+            // Show AI ChatBot panel
+            aiPanel.Visible = true;
+
+            if (txtAiInput != null && txtAiInput.CanFocus)
+            {
+                txtAiInput.Focus();
+            }
+        }
+
+        private void HideAiPanel()
+        {
+            if (aiPanel != null)
+                aiPanel.Visible = false;
+        }
+
+        private void RunQuickChipPrompt(string prompt)
+        {
+            txtAiInput.Text = prompt;
+            _ = SendAiMessageAsync();
+        }
+
+        private void AddWelcomeMessage()
+        {
+            string welcomeText = "👋 **Hello Admin!** I am your Shopping Cart **AI Assistant** powered by Groq LLaMA/GPT.\n\n" +
+                                 "I can analyze your live SQL database to:\n" +
+                                 "• 💰 Calculate total revenue, pending amounts, and sales metrics\n" +
+                                 "• 👑 Identify top-spending customers & order histories\n" +
+                                 "• 🔍 Search users, contact information, and addresses\n" +
+                                 "• 📦 Filter products by price, category, and discounts\n" +
+                                 "• 📊 Answer any general business question or calculation\n\n" +
+                                 "Click any of the quick prompt chips above or type your question below!";
+
+            AddAiBubble(welcomeText);
+        }
+
+        private void AddUserBubble(string text)
+        {
+            int containerWidth = Math.Max(chatScrollPanel.ClientSize.Width - 40, 500);
+
+            Panel row = new Panel();
+            row.Width = containerWidth;
+            row.AutoSize = true;
+            row.Margin = new Padding(0, 5, 0, 10);
+            row.BackColor = Color.Transparent;
+
+            Panel bubble = new Panel();
+            bubble.BackColor = Color.FromArgb(91, 68, 149);
+            bubble.Padding = new Padding(14, 10, 14, 12);
+            bubble.AutoSize = true;
+            bubble.MaximumSize = new Size((int)(containerWidth * 0.78), 0);
+
+            Label lblSender = new Label();
+            lblSender.Text = $"👤 Admin  •  {DateTime.Now:t}";
+            lblSender.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
+            lblSender.ForeColor = Color.FromArgb(235, 230, 250);
+            lblSender.AutoSize = true;
+            lblSender.Location = new Point(14, 8);
+            bubble.Controls.Add(lblSender);
+
+            Label lblBody = new Label();
+            lblBody.Text = text;
+            lblBody.Font = new Font("Segoe UI", 10F);
+            lblBody.ForeColor = Color.White;
+            lblBody.AutoSize = true;
+            lblBody.Location = new Point(14, 28);
+            lblBody.MaximumSize = new Size((int)(containerWidth * 0.74), 0);
+            bubble.Controls.Add(lblBody);
+
+            row.Controls.Add(bubble);
+
+            // Right-align bubble
+            bubble.Location = new Point(row.Width - bubble.PreferredSize.Width - 10, 0);
+
+            chatMessagesContainer.Controls.Add(row);
+            chatScrollPanel.ScrollControlIntoView(row);
+        }
+
+        private void AddAiBubble(string answer, bool isError = false)
+        {
+            int containerWidth = Math.Max(chatScrollPanel.ClientSize.Width - 40, 500);
+
+            Panel row = new Panel();
+            row.Width = containerWidth;
+            row.AutoSize = true;
+            row.Margin = new Padding(0, 5, 0, 15);
+            row.BackColor = Color.Transparent;
+
+            Panel bubble = new Panel();
+            bubble.BackColor = Color.White;
+            bubble.Padding = new Padding(14, 12, 14, 14);
+            bubble.AutoSize = true;
+            bubble.MaximumSize = new Size((int)(containerWidth * 0.88), 0);
+
+            // Top meta bar inside bubble
+            Label lblSender = new Label();
+            lblSender.Text = isError ? $"⚠️ AI Alert  •  {DateTime.Now:t}" : $"🤖 AI Assistant  •  {DateTime.Now:t}";
+            lblSender.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            lblSender.ForeColor = isError ? Color.FromArgb(220, 38, 38) : Color.FromArgb(91, 68, 149);
+            lblSender.AutoSize = true;
+            lblSender.Location = new Point(14, 10);
+            bubble.Controls.Add(lblSender);
+
+            // Copy button
+            Button btnCopy = new Button();
+            btnCopy.Text = "📋 Copy";
+            btnCopy.Font = new Font("Segoe UI", 8F);
+            btnCopy.BackColor = Color.FromArgb(241, 245, 249);
+            btnCopy.ForeColor = Color.FromArgb(100, 116, 139);
+            btnCopy.FlatStyle = FlatStyle.Flat;
+            btnCopy.FlatAppearance.BorderSize = 0;
+            btnCopy.Cursor = Cursors.Hand;
+            btnCopy.Size = new Size(58, 24);
+            btnCopy.Location = new Point(bubble.MaximumSize.Width - 75, 8);
+            btnCopy.Click += (s, e) =>
+            {
+                try
+                {
+                    Clipboard.SetText(answer);
+                    btnCopy.Text = "✓ Copied";
+                }
+                catch { }
+            };
+            bubble.Controls.Add(btnCopy);
+
+            int currentY = 36;
+
+            // Body text
+            Label lblBody = new Label();
+            lblBody.Text = answer;
+            lblBody.Font = new Font("Segoe UI", 10F);
+            lblBody.ForeColor = isError ? Color.FromArgb(185, 28, 28) : Color.FromArgb(30, 41, 59);
+            lblBody.AutoSize = true;
+            lblBody.Location = new Point(14, currentY);
+            lblBody.MaximumSize = new Size((int)(containerWidth * 0.84), 0);
+            bubble.Controls.Add(lblBody);
+
+            row.Controls.Add(bubble);
+            bubble.Location = new Point(10, 0);
+
+            chatMessagesContainer.Controls.Add(row);
+            chatScrollPanel.ScrollControlIntoView(row);
+        }
+
+        private void ShowTypingIndicator(string text = "⚡ AI is analyzing database & calculating...")
+        {
+            HideTypingIndicator();
+
+            int containerWidth = Math.Max(chatScrollPanel.ClientSize.Width - 40, 500);
+
+            typingIndicatorPanel = new Panel();
+            typingIndicatorPanel.Width = containerWidth;
+            typingIndicatorPanel.Height = 45;
+            typingIndicatorPanel.Margin = new Padding(0, 5, 0, 10);
+            typingIndicatorPanel.BackColor = Color.Transparent;
+
+            Panel bubble = new Panel();
+            bubble.BackColor = Color.FromArgb(243, 232, 255);
+            bubble.Padding = new Padding(12, 8, 12, 8);
+            bubble.AutoSize = true;
+            bubble.Location = new Point(10, 0);
+
+            lblTypingText = new Label();
+            lblTypingText.Text = $"🤖 {text}";
+            lblTypingText.Font = new Font("Segoe UI", 9.5F, FontStyle.Italic);
+            lblTypingText.ForeColor = Color.FromArgb(126, 34, 206);
+            lblTypingText.AutoSize = true;
+            lblTypingText.Location = new Point(10, 8);
+            bubble.Controls.Add(lblTypingText);
+
+            typingIndicatorPanel.Controls.Add(bubble);
+            chatMessagesContainer.Controls.Add(typingIndicatorPanel);
+            chatScrollPanel.ScrollControlIntoView(typingIndicatorPanel);
+        }
+
+        private void HideTypingIndicator()
+        {
+            if (typingIndicatorPanel != null)
+            {
+                chatMessagesContainer.Controls.Remove(typingIndicatorPanel);
+                typingIndicatorPanel.Dispose();
+                typingIndicatorPanel = null;
+            }
+        }
+
+        private async Task SendAiMessageAsync()
+        {
+            string userMessage = txtAiInput.Text.Trim();
+            if (string.IsNullOrWhiteSpace(userMessage)) return;
+
+            txtAiInput.Clear();
+            AddUserBubble(userMessage);
+
+            btnAiSend.Enabled = false;
+            lblAiStatus.Text = "⚡ Analyzing...";
+            lblAiStatus.ForeColor = Color.FromArgb(202, 138, 4);
+
+            ShowTypingIndicator("Groq AI is processing your query and reading database data...");
+
+            try
+            {
+                var result = await chatService.SendMessageAsync(userMessage);
+
+                HideTypingIndicator();
+
+                if (result.IsSuccess)
+                {
+                    AddAiBubble(result.Answer);
+                    lblAiStatus.Text = "🟢 Ready";
+                    lblAiStatus.ForeColor = Color.FromArgb(22, 163, 74);
+                }
+                else
+                {
+                    AddAiBubble(result.Answer, isError: true);
+                    lblAiStatus.Text = "⚠️ Error";
+                    lblAiStatus.ForeColor = Color.FromArgb(220, 38, 38);
+                }
+            }
+            catch (Exception ex)
+            {
+                HideTypingIndicator();
+                AddAiBubble($"❌ Error: {ex.Message}", isError: true);
+                lblAiStatus.Text = "⚠️ Error";
+                lblAiStatus.ForeColor = Color.FromArgb(220, 38, 38);
+            }
+            finally
+            {
+                btnAiSend.Enabled = true;
+                if (txtAiInput.CanFocus)
+                {
+                    txtAiInput.Focus();
+                }
+            }
+        }
     }
 }
+

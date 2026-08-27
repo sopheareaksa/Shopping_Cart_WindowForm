@@ -1000,6 +1000,7 @@ namespace Shopping_Cart
         private System.Windows.Forms.Label lblDetailFinalPrice;
         private System.Windows.Forms.Label lblDetailDiscount;
         private System.Windows.Forms.Label lblDetailSpecialOffer;
+        private System.Windows.Forms.Label lblDetailStock;
         private System.Windows.Forms.NumericUpDown numQuantity;
         private System.Windows.Forms.Button btnBackToProducts;
         private System.Windows.Forms.Button btnDetailAddToCart;
@@ -1143,12 +1144,19 @@ namespace Shopping_Cart
             lblDetailSpecialOffer.Visible = false;
             infoPanel.Controls.Add(lblDetailSpecialOffer);
 
+            lblDetailStock = new System.Windows.Forms.Label();
+            lblDetailStock.AutoSize = true;
+            lblDetailStock.Font = new System.Drawing.Font("Segoe UI", 11F, System.Drawing.FontStyle.Bold);
+            lblDetailStock.ForeColor = System.Drawing.Color.FromArgb(16, 185, 129);
+            lblDetailStock.Location = new System.Drawing.Point(30, 310);
+            infoPanel.Controls.Add(lblDetailStock);
+
             System.Windows.Forms.Label lblQuantity = new System.Windows.Forms.Label();
             lblQuantity.Text = "Quantity:";
             lblQuantity.AutoSize = true;
             lblQuantity.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             lblQuantity.ForeColor = System.Drawing.Color.FromArgb(31, 41, 55);
-            lblQuantity.Location = new System.Drawing.Point(30, 330);
+            lblQuantity.Location = new System.Drawing.Point(30, 350);
             infoPanel.Controls.Add(lblQuantity);
 
             numQuantity = new System.Windows.Forms.NumericUpDown();
@@ -1157,7 +1165,7 @@ namespace Shopping_Cart
             numQuantity.Maximum = 99;
             numQuantity.Value = 1;
             numQuantity.Width = 80;
-            numQuantity.Location = new System.Drawing.Point(130, 325);
+            numQuantity.Location = new System.Drawing.Point(130, 345);
             infoPanel.Controls.Add(numQuantity);
 
             btnDetailAddToCart = new System.Windows.Forms.Button();
@@ -1169,7 +1177,7 @@ namespace Shopping_Cart
             btnDetailAddToCart.ForeColor = System.Drawing.Color.White;
             btnDetailAddToCart.BackColor = System.Drawing.Color.FromArgb(59, 130, 246);
             btnDetailAddToCart.Cursor = System.Windows.Forms.Cursors.Hand;
-            btnDetailAddToCart.Location = new System.Drawing.Point(30, 395);
+            btnDetailAddToCart.Location = new System.Drawing.Point(30, 415);
             btnDetailAddToCart.Click += new System.EventHandler(this.btnDetailAddToCart_Click);
             infoPanel.Controls.Add(btnDetailAddToCart);
 
@@ -1614,6 +1622,7 @@ namespace Shopping_Cart
             decimal price = Convert.ToDecimal(row["Price"]);
             decimal discount = row["Discount"] == DBNull.Value ? 0 : Convert.ToDecimal(row["Discount"]);
             int specialOffer = row["SpecialOffer"] == DBNull.Value ? 0 : Convert.ToInt32(row["SpecialOffer"]);
+            int stock = row.Table.Columns.Contains("Stock") && row["Stock"] != DBNull.Value ? Convert.ToInt32(row["Stock"]) : 0;
             string imagePath = row["Image1"].ToString();
 
             decimal finalPrice = CalculateFinalPrice(price, discount, specialOffer);
@@ -1663,23 +1672,50 @@ namespace Shopping_Cart
             nameLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             Label priceLabel = new Label();
-            priceLabel.Text = $"${finalPrice:N2}";
+            if (stock <= 0)
+            {
+                priceLabel.Text = $"${finalPrice:N2} (Out of Stock)";
+                priceLabel.ForeColor = Color.FromArgb(239, 68, 68);
+            }
+            else if (stock <= 5)
+            {
+                priceLabel.Text = $"${finalPrice:N2} (Only {stock} left!)";
+                priceLabel.ForeColor = Color.FromArgb(217, 119, 6);
+            }
+            else
+            {
+                priceLabel.Text = $"${finalPrice:N2} (Stock: {stock})";
+                priceLabel.ForeColor = Color.FromArgb(91, 68, 149);
+            }
             priceLabel.Dock = DockStyle.Fill;
-            priceLabel.Font = new Font("Segoe UI", 11.5F, FontStyle.Bold);
-            priceLabel.ForeColor = Color.FromArgb(91, 68, 149);
+            priceLabel.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             priceLabel.Margin = new Padding(10, 0, 10, 0);
             priceLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             Button addButton = new Button();
-            addButton.Text = "Add to Cart";
             addButton.Dock = DockStyle.Fill;
-            addButton.BackColor = Color.FromArgb(91, 68, 149);
-            addButton.ForeColor = Color.White;
             addButton.FlatStyle = FlatStyle.Flat;
             addButton.FlatAppearance.BorderSize = 0;
             addButton.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             addButton.Margin = new Padding(10, 4, 10, 8);
-            addButton.Cursor = Cursors.Hand;
+
+            if (stock <= 0)
+            {
+                addButton.Text = "Out of Stock";
+                addButton.BackColor = Color.FromArgb(229, 231, 235);
+                addButton.ForeColor = Color.FromArgb(156, 163, 175);
+                addButton.Cursor = Cursors.Default;
+                addButton.Enabled = false;
+            }
+            else
+            {
+                addButton.Text = "Add to Cart";
+                addButton.BackColor = Color.FromArgb(91, 68, 149);
+                addButton.ForeColor = Color.White;
+                addButton.Cursor = Cursors.Hand;
+                addButton.Enabled = true;
+            }
+
             addButton.Tag = new ProductCardInfo
             {
                 ProductId = productId,

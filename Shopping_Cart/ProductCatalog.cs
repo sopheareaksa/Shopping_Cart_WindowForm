@@ -159,6 +159,7 @@ namespace Shopping_Cart
                            Price,
                            Discount,
                            SpecialOffer,
+                           Stock,
                            Image1,
                            Image2,
                            Image3,
@@ -332,7 +333,44 @@ namespace Shopping_Cart
                 lblDetailSpecialOffer.Visible = false;
             }
 
-            numQuantity.Value = 1;
+            int stock = row.Table.Columns.Contains("Stock") && row["Stock"] != DBNull.Value ? Convert.ToInt32(row["Stock"]) : 0;
+            if (stock <= 0)
+            {
+                lblDetailStock.Text = "Status: Out of Stock";
+                lblDetailStock.ForeColor = Color.FromArgb(239, 68, 68);
+                numQuantity.Minimum = 1;
+                numQuantity.Maximum = 1;
+                numQuantity.Value = 1;
+                numQuantity.Enabled = false;
+                btnDetailAddToCart.Text = "Out of Stock";
+                btnDetailAddToCart.Enabled = false;
+                btnDetailAddToCart.BackColor = Color.FromArgb(229, 231, 235);
+                btnDetailAddToCart.ForeColor = Color.FromArgb(156, 163, 175);
+                btnDetailAddToCart.Cursor = Cursors.Default;
+            }
+            else
+            {
+                if (stock <= 5)
+                {
+                    lblDetailStock.Text = $"Status: Only {stock} item(s) left in stock!";
+                    lblDetailStock.ForeColor = Color.FromArgb(217, 119, 6);
+                }
+                else
+                {
+                    lblDetailStock.Text = $"Status: In Stock ({stock} available)";
+                    lblDetailStock.ForeColor = Color.FromArgb(16, 185, 129);
+                }
+
+                numQuantity.Enabled = true;
+                numQuantity.Minimum = 1;
+                numQuantity.Maximum = stock;
+                numQuantity.Value = 1;
+                btnDetailAddToCart.Text = "Add to Cart";
+                btnDetailAddToCart.Enabled = true;
+                btnDetailAddToCart.BackColor = Color.FromArgb(59, 130, 246);
+                btnDetailAddToCart.ForeColor = Color.White;
+                btnDetailAddToCart.Cursor = Cursors.Hand;
+            }
 
             string mainImage = row["Image1"].ToString();
             LoadDetailImage(picDetailImage, mainImage);
@@ -486,6 +524,22 @@ namespace Shopping_Cart
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
                 return;
+            }
+
+            // Validate available stock before checkout
+            foreach (CartItem item in cartItems)
+            {
+                object stockObj = ExecuteScalar("SELECT Stock FROM Products WHERE ProductId = @ProductId", new SqlParameter("@ProductId", item.ProductId));
+                int currentStock = stockObj == null || stockObj == DBNull.Value ? 0 : Convert.ToInt32(stockObj);
+                if (item.Quantity > currentStock)
+                {
+                    MessageBox.Show(
+                        $"Cannot proceed with checkout.\nProduct '{item.ProductName}' only has {currentStock} item(s) in stock (you requested {item.Quantity}).\nPlease adjust your cart quantity.",
+                        "Insufficient Stock",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
             }
 
             using (Form checkoutForm = new Form())
@@ -761,6 +815,26 @@ namespace Shopping_Cart
                 };
 
                 ExecuteNonQuery(updateOrderQuery, updateParameters);
+
+                // Deduct inventory stock for purchased items
+                try
+                {
+                    DataTable dtItems = ExecuteQuery("SELECT ProductId, Quantity FROM OrderItems WHERE OrderId = @OrderId", new SqlParameter("@OrderId", orderId));
+                    if (dtItems != null)
+                    {
+                        foreach (DataRow itemRow in dtItems.Rows)
+                        {
+                            int pId = Convert.ToInt32(itemRow["ProductId"]);
+                            int qty = Convert.ToInt32(itemRow["Quantity"]);
+                            string deductQuery = @"
+                                UPDATE Products
+                                SET Stock = CASE WHEN Stock >= @Qty THEN Stock - @Qty ELSE 0 END
+                                WHERE ProductId = @ProductId";
+                            ExecuteNonQuery(deductQuery, new SqlParameter("@Qty", qty), new SqlParameter("@ProductId", pId));
+                        }
+                    }
+                }
+                catch { }
 
                 return true;
             }
