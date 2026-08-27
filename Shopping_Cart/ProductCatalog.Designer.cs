@@ -149,21 +149,21 @@ namespace Shopping_Cart
             this.panelHeaderActions.Controls.Add(this.btnMyOrders);
             this.panelHeaderActions.Controls.Add(this.btnCart);
             this.panelHeaderActions.Controls.Add(this.lblCartCount);
-            this.panelHeaderActions.Location = new System.Drawing.Point(590, 12);
+            this.panelHeaderActions.Location = new System.Drawing.Point(625, 12);
             this.panelHeaderActions.Name = "panelHeaderActions";
-            this.panelHeaderActions.Size = new System.Drawing.Size(585, 46);
+            this.panelHeaderActions.Size = new System.Drawing.Size(550, 46);
             this.panelHeaderActions.TabIndex = 1;
             // 
             // lblUserName
             // 
             this.lblUserName.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblUserName.ForeColor = System.Drawing.Color.White;
-            this.lblUserName.Location = new System.Drawing.Point(0, 0);
+            this.lblUserName.Location = new System.Drawing.Point(0, 2);
             this.lblUserName.Name = "lblUserName";
-            this.lblUserName.Size = new System.Drawing.Size(120, 46);
+            this.lblUserName.Size = new System.Drawing.Size(90, 42);
             this.lblUserName.TabIndex = 3;
             this.lblUserName.Text = "Hi, Guest";
-            this.lblUserName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.lblUserName.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // btnDashboard
             // 
@@ -173,13 +173,12 @@ namespace Shopping_Cart
             this.btnDashboard.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnDashboard.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnDashboard.ForeColor = System.Drawing.Color.White;
-            this.btnDashboard.Location = new System.Drawing.Point(130, 0);
+            this.btnDashboard.Location = new System.Drawing.Point(100, 2);
             this.btnDashboard.Name = "btnDashboard";
-            this.btnDashboard.Size = new System.Drawing.Size(125, 46);
+            this.btnDashboard.Size = new System.Drawing.Size(115, 42);
             this.btnDashboard.TabIndex = 5;
             this.btnDashboard.Text = "Dashboard";
             this.btnDashboard.UseVisualStyleBackColor = false;
-            this.btnDashboard.Visible = false;
             this.btnDashboard.Click += new System.EventHandler(this.btnDashboard_Click);
             // 
             // btnLogout
@@ -190,9 +189,9 @@ namespace Shopping_Cart
             this.btnLogout.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnLogout.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnLogout.ForeColor = System.Drawing.Color.White;
-            this.btnLogout.Location = new System.Drawing.Point(250, 0);
+            this.btnLogout.Location = new System.Drawing.Point(223, 2);
             this.btnLogout.Name = "btnLogout";
-            this.btnLogout.Size = new System.Drawing.Size(100, 46);
+            this.btnLogout.Size = new System.Drawing.Size(95, 42);
             this.btnLogout.TabIndex = 4;
             this.btnLogout.Text = "Logout";
             this.btnLogout.UseVisualStyleBackColor = false;
@@ -206,9 +205,9 @@ namespace Shopping_Cart
             this.btnMyOrders.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnMyOrders.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnMyOrders.ForeColor = System.Drawing.Color.White;
-            this.btnMyOrders.Location = new System.Drawing.Point(245, 0);
+            this.btnMyOrders.Location = new System.Drawing.Point(326, 2);
             this.btnMyOrders.Name = "btnMyOrders";
-            this.btnMyOrders.Size = new System.Drawing.Size(110, 46);
+            this.btnMyOrders.Size = new System.Drawing.Size(115, 42);
             this.btnMyOrders.TabIndex = 0;
             this.btnMyOrders.Text = "My Orders";
             this.btnMyOrders.UseVisualStyleBackColor = false;
@@ -222,9 +221,9 @@ namespace Shopping_Cart
             this.btnCart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCart.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.btnCart.ForeColor = System.Drawing.Color.White;
-            this.btnCart.Location = new System.Drawing.Point(365, 0);
+            this.btnCart.Location = new System.Drawing.Point(449, 2);
             this.btnCart.Name = "btnCart";
-            this.btnCart.Size = new System.Drawing.Size(100, 46);
+            this.btnCart.Size = new System.Drawing.Size(85, 42);
             this.btnCart.TabIndex = 1;
             this.btnCart.Text = "Cart";
             this.btnCart.UseVisualStyleBackColor = false;
@@ -235,7 +234,7 @@ namespace Shopping_Cart
             this.lblCartCount.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(239)))), ((int)(((byte)(68)))), ((int)(((byte)(68)))));
             this.lblCartCount.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.lblCartCount.ForeColor = System.Drawing.Color.White;
-            this.lblCartCount.Location = new System.Drawing.Point(455, 0);
+            this.lblCartCount.Location = new System.Drawing.Point(520, 2);
             this.lblCartCount.Name = "lblCartCount";
             this.lblCartCount.Size = new System.Drawing.Size(24, 24);
             this.lblCartCount.TabIndex = 2;
