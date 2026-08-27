@@ -41,77 +41,21 @@ namespace Shopping_Cart
         private readonly HttpClient _httpClient;
         private readonly List<ChatMessage> _conversationHistory;
 
-        public string SelectedModel { get; set; } = "openai/gpt-oss-120b";
+        public string SelectedModel { get; set; } = "llama-3.3-70b-versatile";
 
-        private const string SystemPrompt = @"You are the intelligent Admin AI Assistant for the Shopping Cart E-Commerce Windows Forms Management System.
-Your mission is to help the store administrator search data, calculate revenue and amounts, find customer details, analyze orders, and track product inventory.
+        private const string SystemPrompt = @"You are the Admin AI Assistant for a Shopping Cart Store Management application.
+Database Schema:
+- Users (UserId INT PK, UserName NVARCHAR, UserEmail NVARCHAR, Password NVARCHAR, CreatedAt DATETIME)
+- Products (ProductId INT PK, ProductName NVARCHAR, Category NVARCHAR, Price DECIMAL, Discount DECIMAL, SpecialOffer INT, Stock INT, Image1-4 NVARCHAR, CreatedAt DATETIME)
+- Orders (OrderId INT PK, UserId INT FK, OrderDate DATETIME, TotalCost DECIMAL, OrderStatus NVARCHAR, UserPhone NVARCHAR, UserCity NVARCHAR, UserAddress NVARCHAR)
+- OrderItems (OrderItemId INT PK, OrderId INT FK, ProductId INT FK, ProductName NVARCHAR, ProductPrice DECIMAL, Quantity INT, UserId INT, OrderDate DATETIME)
+- Payments (PaymentId INT PK, OrderId INT FK, UserId INT FK, TransactionId NVARCHAR, PaymentDate DATETIME)
+- ProductActivityLog (LogId INT PK, ActionType NVARCHAR, ProductName NVARCHAR, ActionDate DATETIME)
 
-Database Schema & Relationships:
-1. Table 'Users':
-   - UserId (INT, Primary Key)
-   - UserName (NVARCHAR)
-   - UserPassword (NVARCHAR)
-   - UserEmail (NVARCHAR)
-   - CreatedAt (DATETIME)
-
-2. Table 'Products':
-   - ProductId (INT, Primary Key)
-   - ProductName (NVARCHAR)
-   - Category (NVARCHAR)
-   - Price (DECIMAL)
-   - Discount (DECIMAL - discounted price)
-   - SpecialOffer (INT - discount percentage 0-100)
-   - Stock (INT - available inventory stock quantity)
-   - Image1, Image2, Image3, Image4 (NVARCHAR)
-   - CreatedAt (DATETIME)
-
-3. Table 'Orders':
-   - OrderId (INT, Primary Key)
-   - TotalCost (DECIMAL)
-   - OrderStatus (NVARCHAR - e.g. 'Paid', 'Pending', 'Cancelled')
-   - UserId (INT, Foreign Key -> Users.UserId)
-   - UserPhone (NVARCHAR)
-   - UserCity (NVARCHAR)
-   - UserAddress (NVARCHAR)
-   - OrderDate (DATETIME)
-
-4. Table 'OrderItems':
-   - OrderItemId (INT, Primary Key)
-   - OrderId (INT, Foreign Key -> Orders.OrderId)
-   - ProductId (INT, Foreign Key -> Products.ProductId)
-   - ProductName (NVARCHAR)
-   - ProductImage (NVARCHAR)
-   - ProductPrice (DECIMAL)
-   - Quantity (INT)
-   - UserId (INT, Foreign Key -> Users.UserId)
-   - OrderDate (DATETIME)
-
-5. Table 'Payments':
-   - PaymentId (INT, Primary Key)
-   - OrderId (INT, Foreign Key -> Orders.OrderId)
-   - UserId (INT, Foreign Key -> Users.UserId)
-   - TransactionId (NVARCHAR)
-   - PaymentDate (DATETIME)
-
-6. Table 'ProductActivityLog':
-   - LogId (INT, Primary Key)
-   - ActionType (NVARCHAR - 'Add', 'Update', 'Delete')
-   - ProductName (NVARCHAR)
-   - ActionDate (DATETIME)
-
-CRITICAL INSTRUCTIONS FOR DATABASE QUERIES:
-- If answering the admin's request requires querying, searching, filtering, calculating, or aggregating data from the database, you MUST write a T-SQL query enclosed strictly within a single ```sql ... ``` code block.
-- ONLY output READ-ONLY SELECT statements. Never output INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, or EXEC.
-- Use valid Microsoft SQL Server syntax (e.g. TOP N, ISNULL(), FORMAT(), COUNT(), SUM(), AVG(), GROUP BY, JOIN).
-- Example: If asked 'Who is the highest spending customer?', write:
-```sql
-SELECT TOP 5 u.UserId, u.UserName, u.UserEmail, COUNT(o.OrderId) AS OrderCount, ISNULL(SUM(o.TotalCost), 0) AS TotalSpent
-FROM Users u
-LEFT JOIN Orders o ON u.UserId = o.UserId
-GROUP BY u.UserId, u.UserName, u.UserEmail
-ORDER BY TotalSpent DESC
-```
-- If the question is a general greeting, explanation, or does not require database data, respond directly in friendly, clear, professional English (or the user's language). Format numbers as currency ($) where appropriate.";
+RULES:
+1. If data from the database is needed, output ONLY ONE executable T-SQL query in ```sql ... ```.
+2. Only write read-only SELECT queries (use TOP, COUNT, SUM, AVG, ISNULL, JOIN, GROUP BY, ORDER BY).
+3. If no database query is required, respond directly with concise, helpful text. Format currency with $.";
 
         public GroqChatService(string connectionString, string apiKey = "", string apiUrl = "https://api.groq.com/openai/v1/chat/completions")
         {
@@ -137,6 +81,19 @@ ORDER BY TotalSpent DESC
             _conversationHistory.Add(new ChatMessage("system", SystemPrompt));
         }
 
+        private void PruneHistory()
+        {
+            // Keep system prompt + last 4 messages to prevent token buildup and 429 rate limit
+            if (_conversationHistory.Count > 5)
+            {
+                var systemMsg = _conversationHistory[0];
+                var recent = _conversationHistory.Skip(_conversationHistory.Count - 4).ToList();
+                _conversationHistory.Clear();
+                _conversationHistory.Add(systemMsg);
+                _conversationHistory.AddRange(recent);
+            }
+        }
+
         public async Task<ChatResponseResult> SendMessageAsync(string userMessage)
         {
             var result = new ChatResponseResult { IsSuccess = true };
@@ -156,6 +113,7 @@ ORDER BY TotalSpent DESC
                     return result;
                 }
 
+                PruneHistory();
                 _conversationHistory.Add(new ChatMessage("user", userMessage));
 
                 // Call Groq API first time
@@ -192,13 +150,13 @@ ORDER BY TotalSpent DESC
                     }
 
                     string dataSummary = dbError != null
-                        ? $"[DATABASE ERROR]: Failed to execute query on SQL Server: {dbError}"
+                        ? $"[DATABASE ERROR]: {dbError}"
                         : ConvertDataTableToTextSummary(dt);
 
                     // Add assistant's query generation step and tool result
                     _conversationHistory.Add(new ChatMessage("assistant", firstResponse));
                     _conversationHistory.Add(new ChatMessage("user", 
-                        $"[DATABASE QUERY RESULT]:\n{dataSummary}\n\nPlease summarize the result clearly for the admin. If there was a database connection error, explain what query was attempted and how to resolve the connection."));
+                        $"[DATA]:\n{dataSummary}\n\nSummarize the answer clearly and concisely for the admin."));
 
                     // Call Groq API second time for synthesis
                     string finalAnswer = await CallGroqApiAsync(_conversationHistory);
@@ -230,7 +188,7 @@ ORDER BY TotalSpent DESC
                 model = SelectedModel,
                 messages = messages.Select(m => new { role = m.Role, content = m.Content }).ToArray(),
                 temperature = 0.2,
-                max_tokens = 2048
+                max_tokens = 1024
             };
 
             string jsonPayload = JsonSerializer.Serialize(requestBody);
@@ -246,11 +204,23 @@ ORDER BY TotalSpent DESC
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        // Try fallback model if model_not_found
-                        if (responseBody.Contains("model_not_found") && SelectedModel != "qwen/qwen3.8-27b")
+                        // Auto-fallback on rate limit (429) to llama-3.1-8b-instant
+                        if ((int)response.StatusCode == 429 && SelectedModel != "llama-3.1-8b-instant")
                         {
-                            SelectedModel = "qwen/qwen3.8-27b";
+                            SelectedModel = "llama-3.1-8b-instant";
                             return await CallGroqApiAsync(messages);
+                        }
+
+                        // Try fallback model if model_not_found
+                        if (responseBody.Contains("model_not_found") && SelectedModel != "llama-3.1-8b-instant")
+                        {
+                            SelectedModel = "llama-3.1-8b-instant";
+                            return await CallGroqApiAsync(messages);
+                        }
+
+                        if ((int)response.StatusCode == 429)
+                        {
+                            throw new Exception("Groq free tier rate limit reached (Tokens/Minute). Please wait 10-15 seconds and try again.");
                         }
 
                         throw new Exception($"Groq API Error ({response.StatusCode}): {responseBody}");
@@ -339,19 +309,16 @@ ORDER BY TotalSpent DESC
         {
             if (dt == null || dt.Rows.Count == 0)
             {
-                return "Query executed successfully, but returned 0 rows.";
+                return "0 rows returned.";
             }
 
             var sb = new StringBuilder();
-            sb.AppendLine($"Total Rows Returned: {dt.Rows.Count}");
+            sb.AppendLine($"Rows: {dt.Rows.Count}");
             
-            // Header
             var columnNames = dt.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToList();
             sb.AppendLine(string.Join(" | ", columnNames));
-            sb.AppendLine(new string('-', 50));
 
-            // Max 25 rows to prevent token overflow
-            int rowLimit = Math.Min(dt.Rows.Count, 25);
+            int rowLimit = Math.Min(dt.Rows.Count, 8);
             for (int i = 0; i < rowLimit; i++)
             {
                 var row = dt.Rows[i];
@@ -359,7 +326,7 @@ ORDER BY TotalSpent DESC
                 {
                     object val = row[col];
                     if (val == DBNull.Value || val == null) return "NULL";
-                    if (val is DateTime dtVal) return dtVal.ToString("yyyy-MM-dd HH:mm");
+                    if (val is DateTime dtVal) return dtVal.ToString("yyyy-MM-dd");
                     return val.ToString();
                 });
                 sb.AppendLine(string.Join(" | ", values));
@@ -367,7 +334,7 @@ ORDER BY TotalSpent DESC
 
             if (dt.Rows.Count > rowLimit)
             {
-                sb.AppendLine($"... [truncated {dt.Rows.Count - rowLimit} additional rows]");
+                sb.AppendLine($"... ({dt.Rows.Count - rowLimit} more rows)");
             }
 
             return sb.ToString();

@@ -109,6 +109,11 @@ namespace Shopping_Cart
             btnNavChatBot.Click += (s, ev) => BtnNavChatBot_Click(s, ev);
 
             // Wire AI ChatBot controls events
+            if (cmbAiModel.Items.Count > 0 && cmbAiModel.SelectedIndex < 0)
+            {
+                cmbAiModel.SelectedIndex = 0;
+            }
+
             cmbAiModel.SelectedIndexChanged += (s, ev) =>
             {
                 if (chatService != null && cmbAiModel.SelectedItem != null)
