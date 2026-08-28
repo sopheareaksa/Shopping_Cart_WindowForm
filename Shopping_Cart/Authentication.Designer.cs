@@ -62,7 +62,9 @@ namespace Shopping_Cart
             // 
             // pnlFormCard
             // 
+            this.pnlFormCard.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.pnlFormCard.BackColor = System.Drawing.Color.White;
+            this.pnlFormCard.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnlFormCard.Controls.Add(this.lnkBackToLogin);
             this.pnlFormCard.Controls.Add(this.lnkToggleMode);
             this.pnlFormCard.Controls.Add(this.btnSubmit);
@@ -73,11 +75,10 @@ namespace Shopping_Cart
             this.pnlFormCard.Controls.Add(this.lblSubtitle);
             this.pnlFormCard.Controls.Add(this.lblTitle);
             this.pnlFormCard.Controls.Add(this.lblBrandName);
-            this.pnlFormCard.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlFormCard.Location = new System.Drawing.Point(35, 25);
             this.pnlFormCard.Name = "pnlFormCard";
             this.pnlFormCard.Padding = new System.Windows.Forms.Padding(30, 20, 30, 20);
-            this.pnlFormCard.Size = new System.Drawing.Size(470, 550);
+            this.pnlFormCard.Size = new System.Drawing.Size(470, 520);
             this.pnlFormCard.TabIndex = 0;
             // 
             // lblBrandName
@@ -302,12 +303,13 @@ namespace Shopping_Cart
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(250)))), ((int)(((byte)(252)))));
             this.ClientSize = new System.Drawing.Size(540, 600);
             this.Controls.Add(this.pnlCenterWrapper);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
             this.MinimumSize = new System.Drawing.Size(540, 600);
             this.Name = "Authentication";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "ShopMart - Authentication";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.pnlCenterWrapper.ResumeLayout(false);
             this.pnlFormCard.ResumeLayout(false);
             this.pnlFormCard.PerformLayout();

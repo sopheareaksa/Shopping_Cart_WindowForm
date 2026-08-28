@@ -23,10 +23,22 @@ namespace Shopping_Cart
 
         private void WireUpEvents()
         {
+            this.Load += (s, e) => CenterFormCard();
+            pnlCenterWrapper.Resize += (s, e) => CenterFormCard();
+
             btnSubmit.Click += BtnSubmit_Click;
 
             btnSubmit.MouseEnter += (s, e) => btnSubmit.BackColor = Color.FromArgb(29, 78, 216);
             btnSubmit.MouseLeave += (s, e) => btnSubmit.BackColor = Color.FromArgb(37, 99, 235);
+        }
+
+        private void CenterFormCard()
+        {
+            if (pnlCenterWrapper != null && pnlFormCard != null)
+            {
+                pnlFormCard.Left = Math.Max(10, (pnlCenterWrapper.ClientSize.Width - pnlFormCard.Width) / 2);
+                pnlFormCard.Top = Math.Max(10, (pnlCenterWrapper.ClientSize.Height - pnlFormCard.Height) / 2);
+            }
         }
 
         private void BtnSubmit_Click(object sender, EventArgs e)

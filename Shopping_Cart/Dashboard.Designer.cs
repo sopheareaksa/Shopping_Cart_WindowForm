@@ -1415,8 +1415,22 @@ namespace Shopping_Cart
             this.aiChipsPanel.ResumeLayout(false);
             this.aiChipsPanel.PerformLayout();
             this.aiTopPanel.ResumeLayout(false);
-            this.aiTopPanel.PerformLayout();
             this.aiPanel.ResumeLayout(false);
+            // 
+            // Dashboard
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(1300, 900);
+            this.Controls.Add(this.mainTable);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
+            this.MinimumSize = new System.Drawing.Size(1000, 700);
+            this.Name = "Dashboard";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.Text = "ShopMart - Admin Dashboard";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
+            this.Load += new System.EventHandler(this.Dashboard_Load);
             this.ResumeLayout(false);
         }
 

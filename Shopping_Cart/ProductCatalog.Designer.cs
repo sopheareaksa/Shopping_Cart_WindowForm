@@ -901,10 +901,13 @@ namespace Shopping_Cart
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(245)))), ((int)(((byte)(246)))), ((int)(((byte)(250)))));
             this.ClientSize = new System.Drawing.Size(1200, 750);
             this.Controls.Add(this.mainTable);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
             this.MinimumSize = new System.Drawing.Size(900, 600);
             this.Name = "ProductCatalog";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "ShopMart - Product Catalog";
+            this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
             this.Load += new System.EventHandler(this.ProductCatalog_Load);
             this.mainTable.ResumeLayout(false);
             this.headerPanel.ResumeLayout(false);

@@ -46,6 +46,7 @@ namespace Shopping_Cart
             catch { }
 
             InitializeComponent();
+            this.WindowState = FormWindowState.Maximized;
             BuildProductDetailPanel();
             BuildCartPanel();
             BuildPaymentPanel();

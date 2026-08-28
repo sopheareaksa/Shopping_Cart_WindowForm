@@ -44,18 +44,18 @@ namespace Shopping_Cart
         public string SelectedModel { get; set; } = "llama-3.3-70b-versatile";
 
         private const string SystemPrompt = @"You are the Admin AI Assistant for a Shopping Cart Store Management application.
-Database Schema:
-- Users (UserId INT PK, UserName NVARCHAR, UserEmail NVARCHAR, Password NVARCHAR, CreatedAt DATETIME)
-- Products (ProductId INT PK, ProductName NVARCHAR, Category NVARCHAR, Price DECIMAL, Discount DECIMAL, SpecialOffer INT, Stock INT, Image1-4 NVARCHAR, CreatedAt DATETIME)
-- Orders (OrderId INT PK, UserId INT FK, OrderDate DATETIME, TotalCost DECIMAL, OrderStatus NVARCHAR, UserPhone NVARCHAR, UserCity NVARCHAR, UserAddress NVARCHAR)
-- OrderItems (OrderItemId INT PK, OrderId INT FK, ProductId INT FK, ProductName NVARCHAR, ProductPrice DECIMAL, Quantity INT, UserId INT, OrderDate DATETIME)
-- Payments (PaymentId INT PK, OrderId INT FK, UserId INT FK, TransactionId NVARCHAR, PaymentDate DATETIME)
-- ProductActivityLog (LogId INT PK, ActionType NVARCHAR, ProductName NVARCHAR, ActionDate DATETIME)
+            Database Schema:
+            - Users (UserId INT PK, UserName NVARCHAR, UserEmail NVARCHAR, Password NVARCHAR, CreatedAt DATETIME)
+            - Products (ProductId INT PK, ProductName NVARCHAR, Category NVARCHAR, Price DECIMAL, Discount DECIMAL, SpecialOffer INT, Stock INT, Image1-4 NVARCHAR, CreatedAt DATETIME)
+            - Orders (OrderId INT PK, UserId INT FK, OrderDate DATETIME, TotalCost DECIMAL, OrderStatus NVARCHAR, UserPhone NVARCHAR, UserCity NVARCHAR, UserAddress NVARCHAR)
+            - OrderItems (OrderItemId INT PK, OrderId INT FK, ProductId INT FK, ProductName NVARCHAR, ProductPrice DECIMAL, Quantity INT, UserId INT, OrderDate DATETIME)
+            - Payments (PaymentId INT PK, OrderId INT FK, UserId INT FK, TransactionId NVARCHAR, PaymentDate DATETIME)
+            - ProductActivityLog (LogId INT PK, ActionType NVARCHAR, ProductName NVARCHAR, ActionDate DATETIME)
 
-RULES:
-1. If data from the database is needed, output ONLY ONE executable T-SQL query in ```sql ... ```.
-2. Only write read-only SELECT queries (use TOP, COUNT, SUM, AVG, ISNULL, JOIN, GROUP BY, ORDER BY).
-3. If no database query is required, respond directly with concise, helpful text. Format currency with $.";
+            RULES:
+            1. If data from the database is needed, output ONLY ONE executable T-SQL query in ```sql ... ```.
+            2. Only write read-only SELECT queries (use TOP, COUNT, SUM, AVG, ISNULL, JOIN, GROUP BY, ORDER BY).
+            3. If no database query is required, respond directly with concise, helpful text. Format currency with $.";
 
         public GroqChatService(string connectionString, string apiKey = "", string apiUrl = "https://api.groq.com/openai/v1/chat/completions")
         {

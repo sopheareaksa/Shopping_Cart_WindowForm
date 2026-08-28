@@ -88,6 +88,7 @@ namespace Shopping_Cart
         public Dashboard()
         {
             InitializeComponent();
+            this.WindowState = FormWindowState.Maximized;
         }
 
         private void Dashboard_Load(object sender, EventArgs e)
